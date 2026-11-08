@@ -102,6 +102,7 @@ export interface SongView {
   loading: boolean
   loadProblem: string
   folder: string
+  reaper?: { available: boolean; placed: boolean }
   takes: TakeView[]
   jobs: JobView[]
   layout?: { scoreAt: number; audioAt: number; leadInBars: number; measured: boolean; seconds: number; tempo: [number, number] }

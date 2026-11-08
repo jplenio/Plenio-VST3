@@ -5,7 +5,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { call } from '../bridge'
 import { dragToDaw, type DragWhat } from '../drag'
 import { fromStyle, moreGroups, request, type Values } from '../form'
-import { act, loadBriefs, loadTemplate, store } from '../store'
+import { act, loadBriefs, loadTemplate, store, toast } from '../store'
 import type { Brief, TemplateDetail } from '../types'
 import BriefForm from './BriefForm.vue'
 import Icon from './Icon.vue'
@@ -147,6 +147,23 @@ watch(
   { immediate: true }
 )
 
+// --- REAPER: the song on the project's own tracks ---
+
+const reaperTempo = ref(true)
+const placing = ref(false)
+
+async function placeInReaper(): Promise<void> {
+  placing.value = true
+  try {
+    const r = await call<{ state: string }>('reaper.place', { tempo: reaperTempo.value })
+    if (r.state === 'preparing') toast('Making the files for REAPER: the tracks follow in a moment.')
+  } catch (error) {
+    toast(error instanceof Error ? error.message : String(error), true)
+  } finally {
+    placing.value = false
+  }
+}
+
 function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
   if (!active.value) return
   dragToDaw(e, { index: active.value.index, what, stem })
@@ -220,6 +237,31 @@ function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
 
       <!-- the DAW -->
       <section v-else class="pane daw">
+        <div v-if="song.reaper?.available" class="card reaper" :class="{ placed: song.reaper.placed }">
+          <div class="card-head">
+            <Icon :name="song.reaper.placed ? 'check' : 'library'" :size="15" />
+            <b>{{ song.reaper.placed ? 'On REAPER’s tracks' : 'REAPER: the song on tracks' }}</b>
+          </div>
+          <p v-if="!song.reaper.placed" class="muted">
+            Every take on one track as REAPER’s takes, the stems, the score as MIDI, the lyrics, the sections as regions.
+            This instrument goes quiet while REAPER plays them.
+          </p>
+          <p v-else class="muted">
+            The tracks follow the take you choose, here or on the Song track. This instrument is quiet while REAPER plays.
+          </p>
+          <label v-if="!song.reaper.placed" class="toggle tempo">
+            <input v-model="reaperTempo" type="checkbox" />
+            <span class="track" />The project’s tempo map from the song’s bars
+          </label>
+          <div class="buttons">
+            <button class="btn primary small" :disabled="placing || !active" @click="placeInReaper">
+              {{ song.reaper.placed ? 'Bring up to date' : 'Put on tracks' }}
+            </button>
+            <button v-if="song.reaper.placed" class="btn small ghost" title="The tracks stay, as ordinary tracks" @click="act('reaper.forget')">
+              Let go
+            </button>
+          </div>
+        </div>
         <template v-if="active">
           <div class="pane-head">
             <span class="label">Drag into your project · Take {{ active.number }}</span>
@@ -501,6 +543,25 @@ function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
 }
 .reveal {
   align-self: flex-start;
+}
+.card.reaper {
+  border-color: rgba(176, 92, 255, 0.45);
+  background: linear-gradient(180deg, rgba(138, 77, 255, 0.12), rgba(26, 23, 36, 0.9));
+}
+.card.reaper.placed {
+  border-color: rgba(79, 209, 165, 0.4);
+}
+.card.reaper.placed .card-head svg {
+  color: var(--ok);
+}
+.card .tempo {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.card .buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 .card {
   padding: 12px;

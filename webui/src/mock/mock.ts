@@ -171,6 +171,7 @@ let song: SongView | null = {
   takesPerRun: 2,
   stems: true,
   activeTake: 1,
+  reaper: { available: true, placed: false },
   changes: [],
   plan: { what: 'newTake', label: 'render a new take of the same song' },
   edited: { melody: false, instrument: false, chords: false },
@@ -417,6 +418,15 @@ export async function mockCall(method: string, p: Record<string, unknown>): Prom
       }
       return null
     }
+    case 'reaper.place':
+      if (song) song.reaper = { available: true, placed: true }
+      emit('toast', { text: 'Night Drive is on REAPER’s tracks.', problem: false })
+      return { state: 'placed' }
+    case 'reaper.forget':
+      if (song) song.reaper = { available: true, placed: false }
+      return song
+    case 'host.key':
+      return { handled: true }
     case 'daw.drag':
       await new Promise((r) => setTimeout(r, 400))
       return { state: 'dropped' }
