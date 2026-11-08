@@ -107,6 +107,28 @@ std::optional<timeline::BarMap> barsFrom (const Json& answer)
     return bars;
 }
 
+std::string trimmed (std::string s)
+{
+    const char* space = " \t\r\n";
+    s.erase (0, s.find_first_not_of (space));
+    auto end = s.find_last_not_of (space);
+    s.erase (end == std::string::npos ? 0 : end + 1);
+    return s;
+}
+
+/// A release title without the number Plenio's naming adds when the title is in its folder already
+/// ("Night Drive (2)" -> "Night Drive").
+std::string withoutCollisionNumber (const std::string& title)
+{
+    auto open = title.rfind (" (");
+    if (open == std::string::npos || open == 0 || title.size() < open + 4 || title.back() != ')')
+        return title;
+    for (auto i = open + 2; i + 1 < title.size(); ++i)
+        if (title[i] < '0' || title[i] > '9')
+            return title;
+    return title.substr (0, open);
+}
+
 /// Fetches a finished job's files into the take's folder and makes the take of them.
 std::optional<Take> deliver (const PlenioClient& client, const Connection& connection, const record::Job& job,
                              const fs::path& songFolder, int number, const std::string& fallbackTitle,
@@ -116,7 +138,7 @@ std::optional<Take> deliver (const PlenioClient& client, const Connection& conne
     std::error_code ec;
     fs::create_directories (folder / "stems", ec);
     auto relative = [&] (const fs::path& p) { return paths::toUtf8 (fs::relative (p, songFolder, ec)); };
-    auto title = job.title.empty() ? fallbackTitle : job.title;
+    auto title = job.title.empty() ? fallbackTitle : withoutCollisionNumber (job.title);
     auto base = paths::safeName (title.empty() ? std::string ("Song") : title, 60) + " - Take " + std::to_string (number);
 
     Take take;
@@ -201,8 +223,11 @@ std::optional<Take> deliver (const PlenioClient& client, const Connection& conne
     if (take.lines.empty() && take.files.count ("lines"))
         if (auto text = readFile (songFolder / paths::fromUtf8 (take.files["lines"])))
             take.lines = record::parseSrt (*text);
-    if (! rec.title.empty())
-        take.title = rec.title;
+    // the song's title as the writer wrote it (the release title may carry a number against a namesake)
+    if (auto doc = take.documents.find ("title"); doc != take.documents.end() && ! trimmed (doc->second).empty())
+        take.title = trimmed (doc->second).substr (0, 200);
+    else if (! rec.title.empty())
+        take.title = withoutCollisionNumber (rec.title);
 
     // the score as Plenio's MIDI file: the notes to show, play and edit
     if (auto abc = take.documents.find ("score"); abc != take.documents.end() && ! abc->second.empty())
@@ -659,12 +684,14 @@ void SongSession::addTake (Take take, const std::string& group, int index)
 
     // the first take of a run plays at once, unless the owner changed something meanwhile
     const bool firstOfRun = runsWithTake.insert (group).second;
-    if ((firstOfRun || song->activeTake < 0) && ! editedSinceRun)
-    {
+    const bool adopted = (firstOfRun || song->activeTake < 0) && ! editedSinceRun;
+    if (adopted)
         song->adopt (added);
-        if (listen != nullptr)
-            listen->activeTakeChanged();
-    }
+    // the run is over: the folder gets the song's title (before anything reads from it again)
+    if (song->jobs.empty())
+        studioRef->library().tidy (*song);
+    if (adopted && listen != nullptr)
+        listen->activeTakeChanged();
     tell (t.label() + " of " + song->title + " is here.");
     changed();
     if (listen != nullptr)
@@ -873,6 +900,8 @@ void SongSession::rename (const std::string& title)
         return;
     song->title = title.substr (0, 200);
     song->documents["title"] = Doc { song->title, true };
+    if (song->jobs.empty())
+        studioRef->library().tidy (*song);
     changed();
 }
 

@@ -6,6 +6,7 @@ add_executable(plenio_tests
     core/test_midi_score.cpp
     core/test_timeline.cpp
     core/test_song.cpp
+    core/test_daw.cpp
     engine/test_player.cpp
 )
 plenio_target_defaults(plenio_tests)

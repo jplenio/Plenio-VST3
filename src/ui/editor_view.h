@@ -51,6 +51,7 @@ private:
 
     Backend& backend;
     std::unique_ptr<WebViewPanel> panel;
+    void* hostWindow = nullptr;
     std::shared_ptr<bool> alive = std::make_shared<bool> (true);
     float scale = 1.0f;
     bool scaleFromHost = false;

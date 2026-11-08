@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { call } from '../bridge'
 import { act, jobText, store } from '../store'
+import { dragToDaw } from '../drag'
 import { lengthSeconds } from '../form'
 import { formatTime, secondsAt, secondsToTick, tickToSeconds, view, x, zoom } from '../timeline'
 import ChordPicker from './ChordPicker.vue'
@@ -282,6 +283,9 @@ function closePicker(e: MouseEvent): void {
             <b>Take {{ t.number }}</b>
             <span class="muted">{{ formatTime(t.seconds) }}<template v-if="t.stars !== undefined"> · <Icon name="star" :size="10" class="star" />{{ t.stars }}</template></span>
           </div>
+          <span class="drag-take" title="Drag this take onto your DAW" @pointerdown.stop="dragToDaw($event, { index: t.index, what: 'take' })" @click.stop>
+            <Icon name="drag" :size="13" />
+          </span>
           <button class="del" title="Remove this take from the song (its files stay in the library)" @click.stop="act('take.delete', { index: t.index })">
             <Icon name="trash" :size="12" />
           </button>
@@ -542,10 +546,35 @@ function closePicker(e: MouseEvent): void {
   color: var(--amber);
   vertical-align: -1px;
 }
+.drag-take {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  color: var(--text-faint);
+  cursor: grab;
+  padding: 4px 3px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  background: #1c1828;
+}
+.take:hover .drag-take {
+  opacity: 1;
+}
+.drag-take:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
 .del {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   opacity: 0;
   border: none;
-  background: transparent;
+  background: #1c1828;
   color: var(--text-faint);
   cursor: pointer;
   padding: 4px;

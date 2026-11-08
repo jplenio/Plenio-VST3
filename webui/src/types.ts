@@ -38,6 +38,16 @@ export interface TakeView {
   hasAudio: boolean
   measured: boolean
   audioAt?: number
+  daw?: '' | 'preparing' | 'ready' | 'failed'
+}
+
+export interface DawView {
+  number: number
+  state: '' | 'preparing' | 'ready' | 'failed'
+  problem?: string
+  stems?: string[]
+  click?: boolean
+  folder?: string
 }
 
 export interface JobView {

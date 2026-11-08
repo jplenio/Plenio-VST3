@@ -5,6 +5,7 @@
 #include "core/paths.h"
 #include "engine/loader.h"
 #include "platform/dialogs.h"
+#include "platform/drag.h"
 #include "platform/main_thread.h"
 #include "ui/editor_view.h"
 #include "plenio_version.h"
@@ -150,6 +151,11 @@ void SongController::emit (const std::string& name, const Json& payload) const
 void SongController::tick()
 {
     player.collectGarbage();
+    if (reaper && ++reaperTicks >= 12)
+    {
+        reaperTicks = 0;
+        followReaper();
+    }
     if (! sink || hostRate <= 0)
         return;
     auto position = player.position();
@@ -192,6 +198,108 @@ void SongController::jobsChanged()
 void SongController::activeTakeChanged()
 {
     reloadAudio();
+    if (placedInReaper())
+        reaperDirty = true; // the stems, the score, the lyrics and the tempo map follow the take
+}
+
+void SongController::placeInReaper (bool tempo)
+{
+    if (! reaper || ! session->hasSong())
+        return;
+    const auto& song = session->current();
+    if (song.takes.empty() || song.activeTake < 0)
+        return;
+    reaperTempo = tempo;
+    reaperTakeCount = song.takes.size();
+    bool missing = false;
+    for (std::size_t i = 0; i < song.takes.size(); ++i)
+        if (! dawFilesWithMidi (static_cast<int> (i)))
+        {
+            missing = true;
+            prepareDaw (static_cast<int> (i));
+        }
+    if (missing)
+    {
+        reaperWanted = true; // again when the files are made
+        return;
+    }
+    reaperWanted = false;
+
+    ReaperSong rs;
+    rs.id = song.id;
+    rs.title = song.title;
+    for (const auto& t : song.takes)
+    {
+        const auto& files = dawFiles[song.id + "/" + std::to_string (t.number)];
+        rs.takes.push_back ({ t.number, t.label(), files.audio, timeline::layOut (t.timing()).audioAt + t.seconds });
+        rs.length = std::max (rs.length, rs.takes.back().length);
+    }
+    const auto& take = song.takes[static_cast<std::size_t> (song.activeTake)];
+    rs.activeTake = take.number;
+    if (auto files = dawFilesWithMidi (song.activeTake))
+    {
+        rs.stems = files->stems;
+        rs.parts = files->parts;
+    }
+    auto timing = take.timing();
+    auto layout = timeline::layOut (timing);
+    for (const auto& l : take.lines)
+        rs.lines.push_back ({ layout.audioAt + l.start, layout.audioAt + l.end, l.text });
+    if (auto score = song.workingScore())
+        for (std::size_t i = 0; i < score->sections.size(); ++i)
+        {
+            auto end = i + 1 < score->sections.size() ? score->sections[i + 1].tick : score->endTick;
+            auto name = score->sections[i].name;
+            if (! name.empty() && name[0] >= 'a' && name[0] <= 'z')
+                name[0] = static_cast<char> (name[0] - 'a' + 'A');
+            rs.sections.push_back ({ timeline::scoreToProject (timing, layout, score->secondsOf (score->sections[i].tick)),
+                                     timeline::scoreToProject (timing, layout, score->secondsOf (end)), name });
+        }
+    if (tempo)
+        for (const auto& e : timeline::tempoMap (timing, layout, daw::ppq))
+            rs.tempo.push_back ({ e.seconds, e.bpm, e.meter.first, e.meter.second, e.meterChanges || e.tick == 0 });
+
+    std::string problem;
+    if (! reaper->place (rs, problem))
+        tell (problem, true);
+    else
+        player.setSilentWhilePlaying (true); // the tracks play the song now
+    refreshState();
+    emit ("song", songView());
+}
+
+bool SongController::placedInReaper() const
+{
+    return reaper && session->hasSong() && reaper->placed (session->current().id);
+}
+
+void SongController::followReaper()
+{
+    if (! reaper || ! session->hasSong())
+        return;
+    const auto& song = session->current();
+    const bool placed = reaper->placed (song.id);
+    player.setSilentWhilePlaying (placed);
+    if (! placed)
+    {
+        reaperDirty = false;
+        return;
+    }
+    if (reaperDirty || song.takes.size() != reaperTakeCount)
+    {
+        reaperDirty = false;
+        placeInReaper (reaperTempo);
+        return;
+    }
+    // a take chosen on REAPER's Song track: Plenio follows
+    if (auto chosen = reaper->chosenTake (song.id); chosen && song.activeTake >= 0
+                                                    && *chosen != song.takes[static_cast<std::size_t> (song.activeTake)].number)
+        for (std::size_t i = 0; i < song.takes.size(); ++i)
+            if (song.takes[i].number == *chosen)
+            {
+                session->selectTake (static_cast<int> (i));
+                break;
+            }
 }
 
 void SongController::tell (const std::string& text, bool problem)
@@ -309,6 +417,140 @@ void SongController::peaksOf (int index, int count)
     });
 }
 
+void SongController::prepareDaw (int index)
+{
+    if (! session->hasSong())
+        return;
+    const auto& song = session->current();
+    if (index < 0 || index >= static_cast<int> (song.takes.size()))
+        return;
+    const auto& take = song.takes[static_cast<std::size_t> (index)];
+    const int number = take.number;
+    const auto key = song.id + "/" + std::to_string (number);
+    if (dawBusy.count (key) != 0)
+        return;
+    auto file = session->takeAudio (index);
+    if (! file)
+    {
+        tell ("Take " + std::to_string (number) + " has no audio in the library: there is nothing to give the DAW.", true);
+        return;
+    }
+    daw::AudioJob job;
+    job.folder = file->parent_path() / "daw";
+    job.title = paths::safeName (song.title.empty() ? std::string ("Song") : song.title, 60);
+    job.base = job.title + " - Take " + std::to_string (number);
+    job.audio = *file;
+    job.stems = session->takeStems (index);
+    auto timing = take.timing();
+    auto layout = timeline::layOut (timing);
+    job.audioAt = layout.audioAt;
+    job.seconds = take.seconds;
+    job.map = timeline::tempoMap (timing, layout, daw::ppq);
+
+    dawBusy.insert (key);
+    dawProblems.erase (key);
+    emit ("daw", dawView (number));
+    auto token = alive;
+    auto songId = song.id;
+    studio->run ([this, job, token, number, key, songId]
+    {
+        std::string problem;
+        auto files = daw::writeAudio (job, problem);
+        platform::postToMainThread ([this, token, files, problem, number, key, songId]
+        {
+            if (! *token)
+                return;
+            dawBusy.erase (key);
+            if (files)
+                dawFiles[key] = *files;
+            else
+                dawProblems[key] = problem;
+            if (! session->hasSong() || session->current().id != songId)
+                return;
+            if (! files)
+                tell (problem, true);
+            else
+            {
+                // the MIDI files along, so the folder holds everything
+                const auto& takes = session->current().takes;
+                for (std::size_t i = 0; i < takes.size(); ++i)
+                    if (takes[i].number == number)
+                        dawFilesWithMidi (static_cast<int> (i));
+                if (reaperWanted)
+                    placeInReaper (reaperTempo);
+            }
+            emit ("daw", dawView (number));
+            refreshState();
+        });
+    });
+}
+
+std::optional<daw::Files> SongController::dawFilesWithMidi (int index)
+{
+    if (! session->hasSong())
+        return std::nullopt;
+    const auto& song = session->current();
+    if (index < 0 || index >= static_cast<int> (song.takes.size()))
+        return std::nullopt;
+    const auto& take = song.takes[static_cast<std::size_t> (index)];
+    auto it = dawFiles.find (song.id + "/" + std::to_string (take.number));
+    if (it == dawFiles.end())
+        return std::nullopt;
+    // still made of this take's audio (a take of the same number made again replaces it)
+    std::error_code ec;
+    auto source = session->takeAudio (index);
+    if (! source || *source != it->second.source || ! std::filesystem::exists (it->second.audio, ec)
+        || std::filesystem::last_write_time (it->second.audio, ec) < std::filesystem::last_write_time (*source, ec))
+    {
+        dawFiles.erase (it);
+        return std::nullopt;
+    }
+    // the working score for the take that plays (the owner's edits go along), the take's own for the others
+    auto score = index == song.activeTake ? song.workingScore() : take.score();
+    if (score)
+    {
+        auto title = paths::safeName (song.title.empty() ? std::string ("Song") : song.title, 60);
+        std::string problem;
+        if (! daw::writeMidi (it->second, title + " - Take " + std::to_string (take.number), title, *score, take.timing(), take.lines, problem))
+            tell (problem, true);
+    }
+    return it->second;
+}
+
+std::string SongController::dawState (int number) const
+{
+    if (! session->hasSong())
+        return "";
+    const auto key = session->current().id + "/" + std::to_string (number);
+    if (dawBusy.count (key) != 0)
+        return "preparing";
+    if (dawFiles.count (key) != 0)
+        return "ready";
+    if (dawProblems.count (key) != 0)
+        return "failed";
+    return "";
+}
+
+Json SongController::dawView (int number) const
+{
+    Json v = { { "number", number }, { "state", dawState (number) } };
+    if (! session->hasSong())
+        return v;
+    const auto key = session->current().id + "/" + std::to_string (number);
+    if (auto p = dawProblems.find (key); p != dawProblems.end())
+        v["problem"] = p->second;
+    if (auto f = dawFiles.find (key); f != dawFiles.end())
+    {
+        Json stems = Json::array();
+        for (const auto& [name, path] : f->second.stems)
+            stems.push_back (name);
+        v["stems"] = stems;
+        v["click"] = ! f->second.click.empty();
+        v["folder"] = paths::toUtf8 (f->second.folder);
+    }
+    return v;
+}
+
 Json SongController::connectionView() const
 {
     auto c = studio->connection().toJson();
@@ -369,13 +611,14 @@ Json SongController::songView() const
         Json item = { { "index", i }, { "number", t.number }, { "title", t.title }, { "label", t.label() },
                       { "seconds", t.seconds }, { "created", t.created }, { "what", t.what }, { "stems", stems },
                       { "hasAudio", session->takeAudio (static_cast<int> (i)).has_value() }, { "measured", t.bars.has_value() },
-                      { "audioAt", timeline::layOut (t.timing()).audioAt } };
+                      { "audioAt", timeline::layOut (t.timing()).audioAt }, { "daw", dawState (t.number) } };
         if (t.stars)
             item["stars"] = *t.stars;
         takes.push_back (item);
     }
     v["takes"] = takes;
     v["jobs"] = jobsView();
+    v["reaper"] = { { "available", reaper != nullptr }, { "placed", placedInReaper() } };
 
     // the active take on the project's timeline: its working score, bars, sung lines
     const auto* take = s.active();
@@ -665,6 +908,83 @@ Json SongController::call (const std::string& method, const Json& params)
         requireSong();
         session->rename (json::str (params, "title", {}, 200));
         return songView();
+    }
+
+    // REAPER
+    if (method == "reaper.place")
+    {
+        requireSong();
+        if (! reaper)
+            throw CallError ("no_reaper", "Only REAPER lets Plenio put the song on the project's tracks.");
+        placeInReaper (json::boolean (params, "tempo", true));
+        return { { "state", reaperWanted ? "preparing" : "placed" } };
+    }
+    if (method == "reaper.forget")
+    {
+        requireSong();
+        if (reaper)
+            reaper->forget (session->current().id);
+        player.setSilentWhilePlaying (false);
+        refreshState();
+        return songView();
+    }
+    if (method == "host.key")
+    {
+        if (reaper && json::str (params, "key", {}, 16) == "space")
+        {
+            reaper->playStop();
+            return { { "handled", true } };
+        }
+        return { { "handled", false } };
+    }
+
+    // the DAW
+    if (method == "daw.prepare")
+    {
+        requireSong();
+        prepareDaw (static_cast<int> (json::integer (params, "index", -1)));
+        return nullptr;
+    }
+    if (method == "daw.drag")
+    {
+        requireSong();
+        const auto index = static_cast<int> (json::integer (params, "index", -1));
+        const auto what = json::str (params, "what", "take", 16);
+        auto files = dawFilesWithMidi (index);
+        if (! files)
+        {
+            prepareDaw (index);
+            return { { "state", "preparing" } };
+        }
+        std::vector<std::filesystem::path> list;
+        if (what == "take" || what == "all")
+            list.push_back (files->audio);
+        if (what == "stems" || what == "all")
+            for (const auto& s : files->stems)
+                list.push_back (s.second);
+        if (what == "stem")
+            for (const auto& s : files->stems)
+                if (s.first == json::str (params, "stem", {}, 20))
+                    list.push_back (s.second);
+        if (what == "midi" || what == "all")
+            list.push_back (files->midi);
+        if (what == "tempo")
+            list.push_back (files->tempo);
+        if (what == "click")
+            list.push_back (files->click);
+        std::erase_if (list, [] (const std::filesystem::path& f) { std::error_code ec; return f.empty() || ! std::filesystem::exists (f, ec); });
+        if (list.empty())
+            throw CallError ("not_ready", "These files are not there (yet).");
+        auto result = platform::dragFiles (list);
+        return { { "state", result == platform::DragResult::dropped ? "dropped" : result == platform::DragResult::cancelled ? "cancelled" : "failed" } };
+    }
+    if (method == "daw.reveal")
+    {
+        requireSong();
+        auto files = dawFilesWithMidi (static_cast<int> (json::integer (params, "index", -1)));
+        if (files)
+            platform::reveal (files->midi.empty() ? files->audio : files->midi);
+        return nullptr;
     }
 
     // listening

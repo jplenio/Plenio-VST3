@@ -16,6 +16,7 @@ add_library(plenio_core STATIC
     settings.h settings.cpp
     studio.h studio.cpp
     session.h session.cpp
+    daw_export.h daw_export.cpp
     ../platform/main_thread.h ../platform/main_thread.cpp
 )
 plenio_target_defaults(plenio_core)

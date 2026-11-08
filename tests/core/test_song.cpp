@@ -161,6 +161,15 @@ TEST_CASE ("the library keeps a song in its folder and finds it again")
     REQUIRE (list.size() == 1);
     CHECK (list[0].bestStars == doctest::Approx (4.5));
     CHECK (Library::takeFolder (*folder, 3) == *folder / "takes" / "3");
+
+    // the folder follows the title once it is known
+    s.title = "A River of Traffic";
+    CHECK (library.tidy (s));
+    auto moved = library.find (s.id);
+    REQUIRE (moved);
+    CHECK (moved->filename().string() == "A River of Traffic [s-000000000001]");
+    CHECK (! library.tidy (s)); // the same name already
+    CHECK (library.load (s.id));
     std::filesystem::remove_all (root);
 }
 

@@ -1,4 +1,5 @@
 #include "ui/editor_view.h"
+#include "platform/keys.h"
 #include "platform/main_thread.h"
 #include "core/log.h"
 
@@ -91,6 +92,7 @@ tresult PLUGIN_API EditorView::attached (void* parent, FIDString type)
     log::info ("editor attached: {}x{} at scale {}{}, wanted {}x{}", r.getWidth(), r.getHeight(), scale,
                scaleFromHost ? " (host)" : " (window DPI)", wanted.getWidth(), wanted.getHeight());
 
+    hostWindow = parent;
     panel = std::make_unique<WebViewPanel> (parent, r.getWidth(), r.getHeight(),
                                             [this] (const std::string& request) { return handleCall (request); });
     backend.setEventSink ([this] (const std::string& name, const Json& payload)
@@ -124,6 +126,7 @@ tresult PLUGIN_API EditorView::removed()
 {
     backend.setEventSink ({});
     panel.reset();
+    hostWindow = nullptr;
     return Vst::EditorView::removed();
 }
 
@@ -187,7 +190,11 @@ std::string EditorView::handleCall (const std::string& request)
         if (method.empty())
             throw CallError ("bad_request", "The call names no method.");
         const auto& params = json::obj (*parsed, "params");
-        answer = { { "ok", true }, { "result", backend.call (method, params) } };
+        auto result = backend.call (method, params);
+        // a key the page does not use and the plug-in could not give the host itself (REAPER can): to the host's window
+        if (method == "host.key" && ! json::boolean (result, "handled", false))
+            platform::forwardKeyToHost (hostWindow, platform::spaceKey);
+        answer = { { "ok", true }, { "result", result } };
     }
     catch (const CallError& e)
     {

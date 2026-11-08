@@ -409,6 +409,18 @@ export async function mockCall(method: string, p: Record<string, unknown>): Prom
     case 'song.rename':
       if (song) song.title = String(p.title)
       return song
+    case 'daw.prepare': {
+      const t = song?.takes[Number(p.index)]
+      if (t) {
+        emit('daw', { number: t.number, state: 'preparing' })
+        setTimeout(() => emit('daw', { number: t.number, state: 'ready', stems: t.stems, click: true, folder: 'takes/2/daw' }), 900)
+      }
+      return null
+    }
+    case 'daw.drag':
+      await new Promise((r) => setTimeout(r, 400))
+      return { state: 'dropped' }
+    case 'daw.reveal':
     case 'song.reveal':
     case 'player.stem':
     case 'player.midiOut':

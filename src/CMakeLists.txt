@@ -18,6 +18,12 @@ set(PLENIO_PLUGIN_SOURCES
     plugin/song_controller.cpp
     platform/dialogs.h
     platform/dialogs.cpp
+    platform/drag.h
+    platform/drag.cpp
+    platform/keys.h
+    platform/keys.cpp
+    plugin/reaper.h
+    plugin/reaper.cpp
     ara/document_controller.h
     ara/document_controller.cpp
     ara/playback_renderer.h

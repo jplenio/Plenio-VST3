@@ -1,5 +1,6 @@
 #include "plugin/instrument.h"
 #include "plugin/ids.h"
+#include "plugin/reaper.h"
 #include "plugin/state_stream.h"
 #include "platform/main_thread.h"
 #include "ui/editor_view.h"
@@ -104,6 +105,7 @@ tresult PLUGIN_API Instrument::initialize (FUnknown* context)
 
     controller = std::make_unique<SongController> (player);
     controller->setHostName (hostName);
+    controller->setReaper (Reaper::connect (context));
     return kResultOk;
 }
 

@@ -3,13 +3,16 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 import { call } from '../bridge'
+import { dragToDaw, type DragWhat } from '../drag'
 import { fromStyle, moreGroups, request, type Values } from '../form'
 import { act, loadBriefs, loadTemplate, store } from '../store'
 import type { Brief, TemplateDetail } from '../types'
 import BriefForm from './BriefForm.vue'
 import Icon from './Icon.vue'
 
-const tab = ref<'words' | 'brief' | 'daw'>('words')
+type Tab = 'words' | 'brief' | 'daw'
+const wanted = new URLSearchParams(location.search).get('tab') // the demo's pictures (`?tab=daw`)
+const tab = ref<Tab>(wanted === 'brief' || wanted === 'daw' ? wanted : 'words')
 const collapsed = ref(false)
 const song = computed(() => store.song!)
 
@@ -76,9 +79,13 @@ function fillBrief(): void {
   for (const g of moreGroups(template.value)) for (const x of g.fields) if (!(x.id in more)) more[x.id] = x.default as string | number | boolean
 }
 
-watch(tab, (t) => {
-  if (t === 'brief' && !template.value) void loadBrief()
-})
+watch(
+  tab,
+  (t) => {
+    if (t === 'brief' && !template.value) void loadBrief()
+  },
+  { immediate: true }
+)
 watch(
   () => song.value.id,
   () => {
@@ -117,6 +124,32 @@ const midiOut = ref(true)
 function setMidiOut(on: boolean): void {
   midiOut.value = on
   void call('player.midiOut', { on })
+}
+
+const active = computed(() => song.value.takes[song.value.activeTake])
+const dawState = computed(() => active.value?.daw ?? '')
+const tempoText = computed(() => {
+  const t = song.value.layout?.tempo
+  if (!t) return 'the song’s tempo'
+  return Math.abs(t[1] - t[0]) < 0.6 ? `${t[0].toFixed(1)} BPM` : `about ${((t[0] + t[1]) / 2).toFixed(0)} BPM`
+})
+
+function prepare(): void {
+  if (active.value) void call('daw.prepare', { index: active.value.index })
+}
+
+// the files are made when the tab shows and when another take plays while it shows
+watch(
+  () => [tab.value, active.value?.number, dawState.value] as const,
+  ([t, number, state]) => {
+    if (t === 'daw' && number !== undefined && state === '') prepare()
+  },
+  { immediate: true }
+)
+
+function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
+  if (!active.value) return
+  dragToDaw(e, { index: active.value.index, what, stem })
 }
 </script>
 
@@ -187,6 +220,59 @@ function setMidiOut(on: boolean): void {
 
       <!-- the DAW -->
       <section v-else class="pane daw">
+        <template v-if="active">
+          <div class="pane-head">
+            <span class="label">Drag into your project · Take {{ active.number }}</span>
+          </div>
+          <p class="tip muted">Drop at the project's start (bar 1): every file starts there, the MIDI with the song's tempo map.</p>
+          <div v-if="dawState === 'preparing' || dawState === ''" class="making"><span class="spinner" />Making the files for the DAW …</div>
+          <div v-else-if="dawState === 'failed'" class="notice">
+            <Icon name="warning" :size="13" />{{ store.daw[active.number]?.problem || 'The files could not be made.' }}
+            <button class="btn small" @click="prepare">Again</button>
+          </div>
+          <div class="tiles" :class="{ waiting: dawState !== 'ready' }">
+            <div class="tile" title="Drag onto a track" @pointerdown="drag($event, 'take')">
+              <span class="grip"><Icon name="drag" :size="14" /></span>
+              <Icon name="wave" :size="17" class="kind" />
+              <span class="what"><b>Take {{ active.number }}</b><span class="muted">the song · WAV from bar 1</span></span>
+            </div>
+            <div v-if="active.stems.length" class="tile" title="Drag onto the DAW: one track each" @pointerdown="drag($event, 'stems')">
+              <span class="grip"><Icon name="drag" :size="14" /></span>
+              <Icon name="sliders" :size="17" class="kind" />
+              <span class="what">
+                <b>Stems</b>
+                <span class="stems">
+                  <span v-for="s in active.stems" :key="s" class="stem" title="Drag this stem alone" @pointerdown.stop="drag($event, 'stem', s)">{{ s }}</span>
+                </span>
+              </span>
+            </div>
+            <div class="tile" title="Drag onto a MIDI track" @pointerdown="drag($event, 'midi')">
+              <span class="grip"><Icon name="drag" :size="14" /></span>
+              <Icon name="music" :size="17" class="kind" />
+              <span class="what"><b>MIDI</b><span class="muted">melody, instrument line, chords{{ song.edited.melody || song.edited.instrument || song.edited.chords ? ' · with your edits' : '' }}</span></span>
+            </div>
+            <div class="tile" title="Drag onto the DAW to take over the song's bars" @pointerdown="drag($event, 'tempo')">
+              <span class="grip"><Icon name="drag" :size="14" /></span>
+              <Icon name="follow" :size="17" class="kind" />
+              <span class="what"><b>Tempo map</b><span class="muted">the song's bars for your project</span></span>
+            </div>
+            <div v-if="store.daw[active.number]?.click !== false" class="tile" title="Drag onto an audio track" @pointerdown="drag($event, 'click')">
+              <span class="grip"><Icon name="drag" :size="14" /></span>
+              <Icon name="play" :size="15" class="kind" />
+              <span class="what"><b>Click</b><span class="muted">every beat, louder on the bar</span></span>
+            </div>
+          </div>
+          <details class="howto">
+            <summary>The tempo map in your DAW</summary>
+            <p><b>REAPER:</b> drop the tempo map at bar 1 and choose to import its tempo.</p>
+            <p><b>Cubase:</b> File › Import › MIDI File… (or drop it) with the tempo track imported.</p>
+            <p><b>Studio One, Bitwig, Logic:</b> dropping the MIDI file offers its tempo.</p>
+            <p><b>Ableton Live, FL Studio:</b> set the tempo to {{ tempoText }}; the click shows where the bars fall.</p>
+          </details>
+          <button class="btn small ghost reveal" :disabled="dawState !== 'ready'" @click="call('daw.reveal', { index: active.index })">
+            <Icon name="folder" :size="13" />Show the files
+          </button>
+        </template>
         <div class="card">
           <div class="card-head"><Icon name="music" :size="15" /><b>Plays in time</b></div>
           <p class="muted">
@@ -319,6 +405,102 @@ function setMidiOut(on: boolean): void {
   font-size: 12px;
   color: var(--text-dim);
   font-weight: 550;
+}
+.making {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(176, 92, 255, 0.3);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+.tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tiles.waiting {
+  opacity: 0.5;
+}
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 6px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #1f1a2d, #1a1626);
+  border: 1px solid var(--line-strong);
+  cursor: grab;
+  transition: border-color 0.12s, transform 0.08s;
+}
+.tile:hover {
+  border-color: #5a4b85;
+}
+.tile:active {
+  cursor: grabbing;
+  transform: scale(0.99);
+}
+.grip {
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+}
+.kind {
+  color: #c9a8ff;
+  flex: none;
+}
+.what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+.what .muted {
+  font-size: 11.5px;
+}
+.stems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+.stem {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  text-transform: capitalize;
+  cursor: grab;
+}
+.stem:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.howto {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.howto summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 550;
+  padding: 4px 0;
+}
+.howto p {
+  margin: 4px 0;
+  line-height: 1.45;
+}
+.reveal {
+  align-self: flex-start;
 }
 .card {
   padding: 12px;

@@ -84,6 +84,8 @@ public:
     void setStemGain (int stem, float level) { stemGain[static_cast<std::size_t> (stem)].store (level); }
     void setStemOutputActive (int stem, bool active) { stemOutputActive[static_cast<std::size_t> (stem)].store (active); }
     void setMidiOut (bool on) { midiOut.store (on); }
+    /// Quiet while the host plays (the song plays from the DAW's own tracks); listening while it stands stays.
+    void setSilentWhilePlaying (bool on) { silentWhilePlaying.store (on); }
     void setGain (float g) { gain.store (g); }
 
     /// Listening while the host stands: from a project sample, until stop or the host plays.
@@ -128,6 +130,7 @@ private:
     std::array<std::atomic<float>, maxStems> stemGain;
     std::array<std::atomic<bool>, maxStems> stemOutputActive {};
     std::atomic<bool> midiOut { true };
+    std::atomic<bool> silentWhilePlaying { false };
     std::atomic<float> gain { 1.0f };
     std::atomic<std::int64_t> previewStart { 0 };
     std::atomic<std::uint64_t> previewRequest { 0 }, previewStop { 0 };

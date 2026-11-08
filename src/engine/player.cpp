@@ -205,7 +205,7 @@ void Player::render (const Block& block)
         }
 
         // the score as MIDI, at the same times as the audio
-        if (playing != nullptr && block.midi != nullptr && midiOut.load() && ! playing->midi.empty())
+        if (playing != nullptr && block.midi != nullptr && midiOut.load() && ! playing->midi.empty() && ! (block.playing && silentWhilePlaying.load()))
         {
             const auto& events = playing->midi;
             auto it = std::lower_bound (events.begin(), events.end(), position,
@@ -222,6 +222,15 @@ void Player::render (const Block& block)
             }
         }
         expectedNext = position + n;
+        if (block.playing && silentWhilePlaying.load())
+        {
+            std::memset (block.main[0], 0, sizeof (float) * static_cast<std::size_t> (n));
+            std::memset (block.main[1], 0, sizeof (float) * static_cast<std::size_t> (n));
+            for (int s = 0; s < maxStems; ++s)
+                for (int ch = 0; ch < 2; ++ch)
+                    if (block.stems[s][ch] != nullptr)
+                        std::memset (block.stems[s][ch], 0, sizeof (float) * static_cast<std::size_t> (n));
+        }
         if (previewing)
         {
             previewPosition += n;

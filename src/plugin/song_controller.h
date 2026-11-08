@@ -2,13 +2,18 @@
 // view of the song the UI draws (takes, the working score on the project's timeline, sung lines, jobs). Main thread.
 #pragma once
 
+#include "core/daw_export.h"
 #include "core/session.h"
+#include "plugin/reaper.h"
 #include "engine/player.h"
 #include "ui/backend.h"
 
 #include <atomic>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <set>
 #include <string>
 
 namespace plenio::plugin
@@ -21,6 +26,8 @@ public:
     ~SongController() override;
 
     void setHostName (std::string name) { hostName = std::move (name); }
+    /// REAPER as the host: the song can go on the project's own tracks.
+    void setReaper (std::unique_ptr<Reaper> r) { reaper = std::move (r); }
     /// The host's sample rate (setupProcessing): the take is loaded at it.
     void setHostRate (double rate);
 
@@ -51,6 +58,17 @@ private:
     Json connectionView() const;
     Json appState() const;
     void peaksOf (int index, int count);
+    /// The take's files for the DAW: the audio made on a worker (once), then the `daw` event.
+    void prepareDaw (int index);
+    /// The take's DAW files with the MIDI written again (the latest edits); nothing while the audio is not ready.
+    std::optional<daw::Files> dawFilesWithMidi (int index);
+    std::string dawState (int number) const;
+    /// The song on REAPER's tracks, once every take's files are there (made first when missing).
+    void placeInReaper (bool tempo);
+    bool placedInReaper() const;
+    /// Every half second: the take chosen on REAPER's Song track, and tracks to bring up to date.
+    void followReaper();
+    Json dawView (int number) const;
 
     engine::Player& player;
     std::shared_ptr<core::Studio> studio;
@@ -69,6 +87,15 @@ private:
     int editorWidth = 0, editorHeight = 0;
     mutable std::mutex stateLock;
     Json stateCopy = Json::object();
+    std::map<std::string, daw::Files> dawFiles; // by "<song id>/<take number>"
+    std::set<std::string> dawBusy;
+    std::map<std::string, std::string> dawProblems;
+    std::unique_ptr<Reaper> reaper;
+    bool reaperWanted = false;  // place once the files are made
+    bool reaperTempo = true;    // with the project's tempo map
+    bool reaperDirty = false;   // the song changed: its tracks follow
+    int reaperTicks = 0;
+    std::size_t reaperTakeCount = 0;
     std::shared_ptr<bool> alive = std::make_shared<bool> (true);
 };
 

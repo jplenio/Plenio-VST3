@@ -83,6 +83,26 @@ fs::path Library::folderFor (const Song& song) const
     return folder;
 }
 
+bool Library::tidy (const Song& song) const
+{
+    auto found = find (song.id);
+    if (! found || song.title.empty())
+        return false;
+    auto wanted = rootFolder / paths::fromUtf8 (paths::safeName (song.title, 60) + " [" + song.id + "]");
+    if (found->filename() == wanted.filename())
+        return false;
+    std::error_code ec;
+    if (fs::exists (wanted, ec))
+        return false;
+    fs::rename (*found, wanted, ec);
+    if (ec)
+    {
+        log::info ("library: {} keeps its name ({})", paths::toUtf8 (found->filename()), ec.message());
+        return false;
+    }
+    return true;
+}
+
 fs::path Library::takeFolder (const fs::path& songFolder, int number)
 {
     return songFolder / "takes" / std::to_string (number);

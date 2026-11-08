@@ -3,7 +3,7 @@
 import { reactive } from 'vue'
 
 import { call, on } from './bridge'
-import type { AppState, Brief, Connection, JobView, LibrarySong, Settings, SongView, TemplateDetail } from './types'
+import type { AppState, Brief, Connection, DawView, JobView, LibrarySong, Settings, SongView, TemplateDetail } from './types'
 
 export interface Toast {
   id: number
@@ -26,6 +26,7 @@ export const store = reactive({
   toasts: [] as Toast[],
   templates: {} as Record<string, TemplateDetail>,
   library: [] as LibrarySong[],
+  daw: {} as Record<number, DawView>, // by take number, for the open song
   busy: false
 })
 
@@ -41,6 +42,7 @@ export function toast(text: string, problem = false): void {
 }
 
 function applySong(song: SongView | null): void {
+  if (song?.id !== store.song?.id) store.daw = {}
   store.song = song
   for (const take of song?.takes ?? []) {
     if (!store.peaks[take.number] && take.hasAudio) void call('take.peaks', { index: take.index, count: 1600 })
@@ -64,6 +66,12 @@ export async function start(): Promise<void> {
   on('peaks', (p) => {
     const v = p as { number: number; peaks: number[] }
     store.peaks[v.number] = v.peaks
+  })
+  on('daw', (d) => {
+    const v = d as DawView
+    store.daw[v.number] = v
+    const take = store.song?.takes.find((t) => t.number === v.number)
+    if (take) take.daw = v.state
   })
   on('toast', (t) => {
     const v = t as { text: string; problem: boolean }

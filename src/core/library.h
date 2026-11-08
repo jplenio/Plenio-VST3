@@ -42,6 +42,10 @@ public:
     /// The song's folder, made if it is not there yet ("<title> [<id>]").
     std::filesystem::path folderFor (const Song& song) const;
 
+    /// Gives the song's folder the song's title ("New song [id]" becomes "Night Drive [id]") when nothing is being
+    /// written into it; false when it kept its name (the same already, or the folder is in use).
+    bool tidy (const Song& song) const;
+
     /// The folder of a take inside the song's folder (takes/<number>).
     static std::filesystem::path takeFolder (const std::filesystem::path& songFolder, int number);
 
