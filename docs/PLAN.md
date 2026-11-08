@@ -9,7 +9,7 @@
 | **Platforms** | Windows x64 first; the code is kept portable for macOS and Linux |
 | **Plan made** | 2026-11-08 |
 | **Last updated** | 2026-11-08 |
-| **State** | Phases 0 and 1 done; phase 2 in progress |
+| **State** | Phases 0-2 done (Plenio 1.6.0 / Song API 1.4 on branch `song-api-1.4`, checked live); phase 3 in progress |
 
 Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 
@@ -21,8 +21,8 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 |---|---|---|
 | 0 | Analysis, design, decisions (this document) | ✅ done |
 | 1 | Foundation: repository, dependencies, build, both plug-ins load, web UI in the plug-in window | ✅ done (REAPER check in phase 8) |
-| 2 | Plenio Song API 1.4 (in the Plenio repository): stems with every take, bars of a take, model readiness | 🔄 in progress |
-| 3 | Core: song library, Plenio client, jobs (1–4 takes a run), timeline math, MIDI, audio files | ⬜ |
+| 2 | Plenio Song API 1.4 (in the Plenio repository): stems with every take, bars of a take, model readiness | ✅ done (A4 later) |
+| 3 | Core: song library, Plenio client, jobs (1–4 takes a run), timeline math, MIDI, audio files | 🔄 in progress |
 | 4 | Engine: takes and stems played in sync with the host, multi-out, MIDI out, state | ⬜ |
 | 5 | User interface: new song and cover, song view, takes, piano roll, chords, lyrics, generate | ⬜ |
 | 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | ⬜ |
@@ -61,7 +61,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | D6 | One instance | **One Plenio instance = one song** | Simple to understand; several songs = several instances |
 | D7 | Plenio | **No copy of Plenio in the plug-in** (unlike the SoundCraft add-in): it talks to the user's ComfyUI with Plenio through the versioned Song API and reads its capabilities from `GET /plenio/api/v1` | A new Plenio is taken in by updating ComfyUI's custom node; new fields appear in the forms by themselves (requirement 8) |
 | D8 | Tempo | **The audio is the master** (the SoundCraft decision of 2026-11-06): the bars are measured in the take and the DAW's tempo map follows them; the audio is never stretched | A YuE2 render keeps no steady tempo (150–250 ms off a straight line in the median song) |
-| D9 | Stems | **From the job itself**: Plenio's template already separates the stems in every run (Master subgraph: Separate Stems → Stem Mixer) and only does not save them. API 1.4 gets a job option `stems` that marks them *save* | Stems at almost no extra cost, in the same queue (no second model competing for the GPU) |
+| D9 | Stems | **From the job itself**: Plenio's template has the stems in its Master subgraph (Separate Stems → Stem Mixer behind a *stems* switch, off by default). API 1.4 gets a job option `stems` that turns the switch on and marks every stem *save* | Stems in the same run and queue (no second model competing for the GPU), about half a minute more per take |
 | D10 | Testing against ComfyUI | **A dev instance of ComfyUI of its own** (own `--base-directory`, Plenio's Git folder linked in, the owner's models shared), like the SoundCraft add-in | The owner's ComfyUI (`D:\Daten2\ComfyUI`, Plenio 1.5.0 as a copy) stays untouched |
 | D11 | Language | Code, comments, docs, UI text and commit messages in **English**, like Plenio and the SoundCraft add-in | The owner's rule for the SoundCraft add-in (2026-11-06); talk with the owner in German |
 
@@ -151,7 +151,7 @@ drop its wrapper routes later):
 
 | # | Addition | What it does |
 |---|---|---|
-| A1 | job option `"stems": true` | marks every strip of the template's Stem Mixer *save*: Export Release writes the stems (vocals, drums, bass, other, rest) into `<name>-stems/` and lists them in the record (`role: "stem"`); they download through `GET /jobs/{id}/files/{name}` (names with the folder) |
+| A1 | job option `"stems": true` | turns the Master's *stems* switch on and marks every strip of the Stem Mixer *save* (`save_all`): Export Release writes the stems (vocals, drums, bass, other, rest) into `<name>-stems/` and lists them in the record (`role: "stem"`); they download through `GET /jobs/{id}/files/{name}` (names with the folder) |
 | A2 | `GET /jobs/{id}/bars` | where every bar of the score lies in the take's audio (the SoundCraft add-in's `beats.py`, moved into `plenio/core/bars.py`), measured once and kept beside the record (`<name>.bars.json`) |
 | A3 | `GET /models` | per template: ready or not, the missing model files and their sizes (the add-in's `/scp/v1/models`, for every template) |
 | A4 | `POST /stems` | stems of an existing take, as a queued job (for takes made without stems, and imported songs) |
@@ -313,12 +313,17 @@ the first song.
 
 ### Phase 2: Plenio Song API 1.4 (Plenio repository, branch `song-api-1.4`)
 
-- [ ] A1 `stems` job option, stems listed in the record, file route for names with a folder
-- [ ] A2 `plenio/core/bars.py` (from `beats.py`, with its tests) and `GET /jobs/{id}/bars`
-- [ ] A3 `GET /models`
-- [ ] A4 `POST /stems` (queued)
-- [ ] A5 version 1.6.0 / API 1.4, docs, OpenAPI, CHANGELOG; Plenio's tests green
-- [ ] `tools/dev_comfyui.ps1`: a dev instance of ComfyUI on its own port with the Plenio Git folder; a live job with stems and bars
+- [x] A1 `stems` job option, stems listed in the record, file route for names with a folder
+  💡 What was done: the Stem Mixer's value takes `save_all` (every strip saved, whatever the separation names its stems; the sound unchanged); `"stems": true` sets it and turns on the Master subgraph's *stems* input; `result_file` serves one folder level beside the record and nothing deeper; the result's files carry the stem's name. The first live run saved nothing: the separation sits behind three switches that are off in the templates, so the first idea (only mark the mixer) was not enough. Found in the run's prompt, fixed, pinned by a test, run again: five stems and two stem MIDI files.
+- [x] A2 `plenio/core/bars.py` (from `beats.py`, with its tests) and `GET /jobs/{id}/bars`
+  💡 The add-in's algorithm unchanged (mypy-strict clean after one rename), its 20 tests moved with it, plus tests for reading a record and the cache `<name>.bars.json`. Live: 58 measures in 0.4 s, 0.03 s from the cache.
+- [x] A3 `GET /models`
+  💡 Live it found something real on this computer: `flux2-vae` (cover art) has another size than the catalogue says, so the templates count as not ready; the plug-in will name the file and say that cover art needs it.
+- [ ] A4 `POST /stems` (queued) - later: stems now come with the take; for older takes and imported songs it is still open
+- [x] A5 version 1.6.0 / API 1.4, docs, OpenAPI, CHANGELOG (an "unreleased" section); Plenio's tests green
+  💡 2012 passed, 1 skipped (was 1980 + 1 skipped for 1.5.1); mypy strict and ruff clean. `GET /` lists `features: ["stems", "bars", "models"]`: the plug-in turns features on by them. Commits `de099e9` and `e93f68b` on `song-api-1.4` (not pushed, not merged).
+- [x] `tools/dev_comfyui.ps1`: a dev instance of ComfyUI on its own port with the Plenio Git folder; a live job with stems and bars
+  💡 Port 8190, its own base folder with only the link to the Plenio checkout, the owner's models and GPU options from `comfyui-start.json`. Live: a 1:21 song with stems in 137 s, the stems downloaded, the bars measured.
 
 ### Phase 3: core
 
@@ -390,3 +395,4 @@ the first song.
 | Date | Change |
 |---|---|
 | 2026-11-08 | Plan made after reading the SoundCraft add-in and Plenio; decisions D1–D11; the owner's added requirement (projects usable without ComfyUI and Plenio) in D5 |
+| 2026-11-08 | Phase 1 done (bundle, validator, WebView editor checked at 150 % scaling); phase 2 done: Plenio 1.6.0 with Song API 1.4 (stems, bars, models), checked live on a dev ComfyUI; D9 corrected (the stems sit behind a switch) |
