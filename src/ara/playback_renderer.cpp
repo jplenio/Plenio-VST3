@@ -40,7 +40,35 @@ void PlaybackRenderer::render (float* const* output, int channels, ARA::ARASampl
     for (const auto* region : getPlaybackRegions())
     {
         const auto* source = region->getAudioModification()->getAudioSource<const AudioSource>();
-        if (! source->isSampleAccessEnabled() || ! source->hasCache() || source->getSampleRate() != sampleRate)
+        if (source->getSampleRate() != sampleRate)
+            continue;
+
+        // another take of the song in this clip: its file, at the same places (every take starts at the project's start)
+        if (const auto* alt = source->alternateTake(); alt != nullptr && ! alt->channels.empty())
+        {
+            const auto regionStart = region->getStartInPlaybackSamples (sampleRate);
+            const auto regionEnd = region->getEndInPlaybackSamples (sampleRate);
+            if (end <= regionStart || regionEnd <= position)
+                continue;
+            const auto offset = region->getStartInAudioModificationSamples() - regionStart;
+            const auto from = std::max (regionStart, position);
+            const auto to = std::min (regionEnd, end);
+            for (int c = 0; c < channels; ++c)
+            {
+                if (output[c] == nullptr)
+                    continue;
+                const auto& in = alt->channels[static_cast<size_t> (std::min<int> (c, static_cast<int> (alt->channels.size()) - 1))];
+                for (auto t = from; t < to; ++t)
+                {
+                    const auto frame = t + offset + alt->offset;
+                    if (frame >= 0 && frame < alt->frames)
+                        output[c][t - position] += in[static_cast<size_t> (frame)];
+                }
+            }
+            continue;
+        }
+
+        if (! source->isSampleAccessEnabled() || ! source->hasCache())
             continue;
 
         const auto regionStart = region->getStartInPlaybackSamples (sampleRate);

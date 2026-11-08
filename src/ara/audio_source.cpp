@@ -64,6 +64,7 @@ const core::ClipContent* AudioSource::content() const
                 clipContent = core::contentOf (*match);
                 const auto& take = match->song.takes[static_cast<std::size_t> (match->takeIndex)];
                 log::info ("ARA: '{}' is take {} of {}{}", name, take.number, match->song.title, match->stem.empty() ? "" : " (" + match->stem + ")");
+                clipMatch = std::move (*match);
             }
         }
     }
@@ -74,6 +75,13 @@ void AudioSource::forgetTake() noexcept
 {
     looked = false;
     clipContent.reset();
+    clipMatch.reset();
+}
+
+const core::ClipMatch* AudioSource::take() const
+{
+    content();
+    return clipMatch ? &*clipMatch : nullptr;
 }
 
 const float* AudioSource::channel (ARA::ARAChannelCount c) const noexcept

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import AraView from './components/AraView.vue'
 import LibraryDialog from './components/LibraryDialog.vue'
 import LicenceDialog from './components/LicenceDialog.vue'
 import NewSongDialog from './components/NewSongDialog.vue'
@@ -43,7 +44,8 @@ onMounted(async () => {
 
 <template>
   <div class="app">
-    <template v-if="store.ready">
+    <AraView v-if="store.ready && store.kind === 'ara'" />
+    <template v-else-if="store.ready">
       <TopBar @library="open('library')" @settings="open('settings')" @new="open('new')" />
       <OfflineBanner />
       <SongView v-if="store.song" @new="open('new')" />

@@ -8,6 +8,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 
 namespace plenio::core
 {
@@ -41,6 +42,36 @@ double secondsOfTick (const std::vector<timeline::TempoEvent>& map, std::int64_t
     return e.seconds + static_cast<double> (tick - e.tick) / ppq * 60.0 / std::max (1.0, e.bpm);
 }
 } // namespace
+
+std::optional<daw::AudioJob> dawAudioJob (const Library& library, const Song& song, int takeIndex)
+{
+    if (takeIndex < 0 || takeIndex >= static_cast<int> (song.takes.size()))
+        return std::nullopt;
+    const auto& take = song.takes[static_cast<std::size_t> (takeIndex)];
+    auto file = take.files.find ("song");
+    if (file == take.files.end())
+        return std::nullopt;
+    std::error_code ec;
+    daw::AudioJob job;
+    job.audio = library.resolve (song, file->second);
+    if (! std::filesystem::exists (job.audio, ec))
+        return std::nullopt;
+    for (const auto& s : take.stems)
+    {
+        auto path = library.resolve (song, s.file);
+        if (std::filesystem::exists (path, ec))
+            job.stems.emplace_back (s.name, path);
+    }
+    job.folder = job.audio.parent_path() / "daw";
+    job.title = paths::safeName (song.title.empty() ? std::string ("Song") : song.title, 60);
+    job.base = job.title + " - Take " + std::to_string (take.number);
+    const auto timing = take.timing();
+    const auto layout = timeline::layOut (timing);
+    job.audioAt = layout.audioAt;
+    job.seconds = take.seconds;
+    job.map = timeline::tempoMap (timing, layout, daw::ppq);
+    return job;
+}
 
 std::optional<int> fifthsOf (std::string_view noteName)
 {

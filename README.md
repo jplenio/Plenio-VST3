@@ -13,7 +13,7 @@ chords and lyrics to change by hand and render again.
 | Plug-in | Type | What it does |
 |---|---|---|
 | **Plenio** | VST3 instrument | One song: new song or cover, takes (up to 4 per run), stems on extra outputs, melody, chords and lyrics to edit, played in sync with your DAW; drag takes, stems and MIDI with the song's tempo map into your project. In REAPER it puts the song on tracks itself, every take as a REAPER take. |
-| **Plenio ARA** | ARA 2 extension | On a clip in Cubase, Studio One, REAPER and other ARA hosts: knows Plenio's takes and hands the host their tempo, bars, key, sung notes and chords. *Next:* another take in the same clip, the take's lyrics, notes and chords in its own window, covers of any clip. |
+| **Plenio ARA** | ARA 2 extension | On a clip in Cubase, Studio One, REAPER and other ARA hosts: knows Plenio's takes, hands the host their tempo, bars, key, sung notes and chords, and plays any other take of the song in the same clip. *Next:* the take's lyrics, notes and chords in its window, covers of any clip. |
 
 ## Requirements
 

@@ -7,6 +7,8 @@
 #include "ARA_Library/PlugIn/ARAPlug.h"
 #include "public.sdk/source/vst/vstsinglecomponenteffect.h"
 
+#include <map>
+#include <memory>
 #include <string>
 
 namespace plenio::plugin
@@ -58,7 +60,14 @@ public:
     REFCOUNT_METHODS (SingleComponentEffect)
 
 private:
+    /// The clips of the document that are Plenio takes: which take each is, which plays, the song's other takes.
+    Json araState();
+    /// Another take arrived for a clip (main thread): it plays from now on, or the clip keeps what it had.
+    void takeReady (const std::string& clipId, int number, std::shared_ptr<const struct AlternateHolder> holder, const std::string& problem);
+
     ARA::PlugIn::PlugInExtension araExtension;
+    std::map<std::string, int> pendingTakes; // clip -> the take being made ready for it
+    std::shared_ptr<bool> alive = std::make_shared<bool> (true);
     std::string hostName;
     EventSink sink;
     int editorWidth = 0;

@@ -1,5 +1,6 @@
 #include "plugin/song_controller.h"
 #include "core/audio_file.h"
+#include "core/clip_content.h"
 #include "core/library.h"
 #include "core/log.h"
 #include "core/paths.h"
@@ -429,23 +430,13 @@ void SongController::prepareDaw (int index)
     const auto key = song.id + "/" + std::to_string (number);
     if (dawBusy.count (key) != 0)
         return;
-    auto file = session->takeAudio (index);
-    if (! file)
+    auto made = core::dawAudioJob (studio->library(), song, index);
+    if (! made)
     {
         tell ("Take " + std::to_string (number) + " has no audio in the library: there is nothing to give the DAW.", true);
         return;
     }
-    daw::AudioJob job;
-    job.folder = file->parent_path() / "daw";
-    job.title = paths::safeName (song.title.empty() ? std::string ("Song") : song.title, 60);
-    job.base = job.title + " - Take " + std::to_string (number);
-    job.audio = *file;
-    job.stems = session->takeStems (index);
-    auto timing = take.timing();
-    auto layout = timeline::layOut (timing);
-    job.audioAt = layout.audioAt;
-    job.seconds = take.seconds;
-    job.map = timeline::tempoMap (timing, layout, daw::ppq);
+    const auto job = *made;
 
     dawBusy.insert (key);
     dawProblems.erase (key);

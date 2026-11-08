@@ -4,6 +4,7 @@
 // as ARA content); no ARA here, so it is tested on its own.
 #pragma once
 
+#include "core/daw_export.h"
 #include "core/song.h"
 
 #include <array>
@@ -86,6 +87,10 @@ struct ClipContent
 };
 
 ClipContent contentOf (const ClipMatch& match);
+
+/// What the DAW's audio files of a take are made of: its audio and stems from the library (those that are there),
+/// the lead-in, the tempo map for the click; nothing when the take's audio is not in the library.
+std::optional<daw::AudioJob> dawAudioJob (const Library& library, const Song& song, int takeIndex);
 
 /// "Eb" -> -3, "F#" -> 6: a note name's place on the circle of fifths.
 std::optional<int> fifthsOf (std::string_view noteName);

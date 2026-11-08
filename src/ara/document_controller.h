@@ -20,6 +20,18 @@ public:
     bool rendererWillAccessModelGraph() noexcept;
     void rendererDidAccessModelGraph() noexcept;
 
+    /// Changes what renderers read (another take in a clip) while they wait. Main thread.
+    template <typename Change>
+    void whileRenderersWait (Change&& change) noexcept
+    {
+        const bool editing = isHostEditingDocument(); // then they wait already, until the host's edit ends
+        if (! editing)
+            blockRenderers();
+        change();
+        if (! editing)
+            unblockRenderers();
+    }
+
 protected:
     void willBeginEditing() noexcept override;
     void didEndEditing() noexcept override;

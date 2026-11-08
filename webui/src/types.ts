@@ -112,12 +112,29 @@ export interface SongView {
   leadIn?: { start: number; end: number; number: number }[]
 }
 
+export interface AraClip {
+  id: string
+  name: string
+  song: string
+  stem: string
+  own: number
+  playing: number
+  pending?: number
+  takes: { number: number; label: string; seconds: number; stars?: number }[]
+}
+
+export interface AraState {
+  bound: boolean
+  clips: AraClip[]
+}
+
 export interface AppState {
   hello: { kind: string; version: string; host: string }
-  connection: Connection
-  settings: Settings
+  connection: Connection | null
+  settings: Settings | null
   song: SongView | null
   position: number
+  ara?: AraState
 }
 
 /** A field of a template (GET /plenio/api/v1/templates/{id}). */

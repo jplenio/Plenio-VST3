@@ -26,7 +26,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | 4 | Engine: takes and stems played in sync with the host, multi-out, MIDI out, state | ✅ done |
 | 5 | User interface: new song and cover, song view, takes, piano roll, chords, lyrics, generate | 🔄 in progress |
 | 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | 🔄 built; drag and drop and REAPER in the owner's test |
-| 7 | ARA 2: Plenio ARA on clips | 🔄 takes recognised, their content for the host; next: another take in the clip, the editor |
+| 7 | ARA 2: Plenio ARA on clips | 🔄 takes recognised, their content for the host, another take in the clip, its window; open: words and notes in the window, covers of any clip |
 | 8 | Test version for the owner: end to end, live, in REAPER and Cubase | 🔄 end to end and offline checked; REAPER and Cubase: the owner's test |
 | 9 | Alpha release on GitHub: polish, docs, package, release text | ⬜ |
 
@@ -400,9 +400,10 @@ the first song.
   💡 By the name the plug-in gives every file (`<title> - Take <n>[ - <stem>]`, with a DAW's own suffixes) and the length, which also tells the DAW's file (padded with the lead-in) from Plenio's own: no fingerprint needed. `core/clip_content`, tested.
 - [x] Content for the host: tempo, bars, notes, chords, key
   💡 For audio sources and modifications: a tempo entry per measured bar, the meters, the key, the sung notes (the song and its vocal stem), the chords with roots on the circle of fifths, diatonic degrees and names with ♭ and ♯. The ARA SDK's ARATestHost passes all ten of its tests (`tools/dev/ara_test.ps1`; the test host itself hangs now and then on start, the SDK's own test plug-in too, so the script starts it again).
-- [ ] Playback: pass-through, or another take of the song in the same clip
-  💡 Pass-through works (tested); another take in the clip is next: every take's DAW file starts at the project's start, so the same samples line up.
-- [ ] Editor view: the clip's song, lyrics, notes and chords in the timeline; transport control
+- [x] Playback: pass-through, or another take of the song in the same clip
+  💡 Pass-through tested. Another take: its DAW file (made when missing), read and brought to the clip's rate on a worker, swapped in while the renderers wait; every take's file starts at the project's start, so the same samples line up (a stem's clip plays the same stem). The host's tempo map stays the clip's take's. Tried in a DAW in the owner's test (no ARA host here plays it).
+- [~] Editor view: the clip's song, lyrics, notes and chords in the timeline; transport control
+  💡 Plenio ARA's window lists the project's clips that are Plenio takes and switches the take that plays in each. Open: the take's lyrics, notes and chords in that window.
 - [ ] A cover of any clip
 
 ### Phase 8: test version
@@ -433,3 +434,4 @@ the first song.
 | 2026-11-08 | Phases 3 and 4 done; phase 5: the whole UI; the first song made end to end in the plug-in (EditorHost, dev ComfyUI) found the release's `sheet_music` sent as a switch (it is a choice): fixed; `PLENIO_VST3_HOME` keeps development apart from the owner's settings and songs |
 | 2026-11-08 | Phase 6 built: files for the DAW, drag and drop, REAPER tracks, the space bar; A6 (syllables) noted for later |
 | 2026-11-08 | Phase 7: Plenio ARA recognises takes and gives hosts their tempo, bars, key, notes and chords (ARATestHost: all tests pass); phase 8: end to end (edited notes sung, a cover, four takes with stems) and offline checked, install script and test guide |
+| 2026-11-08 | Phase 7: another take of the song in a clip, chosen in Plenio ARA's window |

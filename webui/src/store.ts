@@ -3,7 +3,7 @@
 import { reactive } from 'vue'
 
 import { call, on } from './bridge'
-import type { AppState, Brief, Connection, DawView, JobView, LibrarySong, Settings, SongView, TemplateDetail } from './types'
+import type { AppState, AraState, Brief, Connection, DawView, JobView, LibrarySong, Settings, SongView, TemplateDetail } from './types'
 
 export interface Toast {
   id: number
@@ -27,6 +27,7 @@ export const store = reactive({
   templates: {} as Record<string, TemplateDetail>,
   library: [] as LibrarySong[],
   daw: {} as Record<number, DawView>, // by take number, for the open song
+  ara: null as AraState | null, // Plenio ARA's window: the clips that are Plenio takes
   busy: false
 })
 
@@ -73,6 +74,9 @@ export async function start(): Promise<void> {
     const take = store.song?.takes.find((t) => t.number === v.number)
     if (take) take.daw = v.state
   })
+  on('ara', (a) => {
+    store.ara = a as AraState
+  })
   on('toast', (t) => {
     const v = t as { text: string; problem: boolean }
     toast(v.text, v.problem)
@@ -84,6 +88,7 @@ export async function start(): Promise<void> {
   store.connection = state.connection
   store.settings = state.settings
   store.position = state.position
+  store.ara = state.ara ?? null
   applySong(state.song)
   store.ready = true
 }

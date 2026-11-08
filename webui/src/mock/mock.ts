@@ -3,7 +3,7 @@
 // song (default), empty, busy, offline, new.
 
 import { emit } from '../bridge'
-import type { AppState, Chord, Connection, LibrarySong, Line, Measure, Note, ScoreView, Settings, SongView, TakeView } from '../types'
+import type { AppState, AraState, Chord, Connection, LibrarySong, Line, Measure, Note, ScoreView, Settings, SongView, TakeView } from '../types'
 import { BRIEFS, COVER_TEMPLATE, SONG_TEMPLATE, VALUES } from './data'
 
 const params = new URLSearchParams(location.search)
@@ -227,7 +227,41 @@ const LIBRARY: LibrarySong[] = [
   { id: 's-0019a2b3c4d7', title: 'Late Bus (jazz cover)', kind: 'cover', takes: 2, modified: 1762400000, stars: 3.5 }
 ]
 
+// Plenio ARA's window (`?state=ara`): two clips of the demo song
+const ara: AraState = {
+  bound: true,
+  clips: [
+    {
+      id: '1',
+      name: 'C:\\Music\\Night Drive - Take 2.wav',
+      song: 'Night Drive',
+      stem: '',
+      own: 2,
+      playing: 2,
+      takes: [
+        { number: 1, label: 'Take 1 · 4 stars', seconds: 91.4, stars: 4 },
+        { number: 2, label: 'Take 2 · 4.5 stars', seconds: 92.1, stars: 4.5 },
+        { number: 3, label: 'Take 3 · 3.5 stars', seconds: 90.8, stars: 3.5 }
+      ]
+    },
+    {
+      id: '2',
+      name: 'C:\\Music\\Night Drive - Take 2 - vocals.wav',
+      song: 'Night Drive',
+      stem: 'vocals',
+      own: 2,
+      playing: 3,
+      takes: [
+        { number: 1, label: 'Take 1 · 4 stars', seconds: 91.4, stars: 4 },
+        { number: 2, label: 'Take 2 · 4.5 stars', seconds: 92.1, stars: 4.5 },
+        { number: 3, label: 'Take 3 · 3.5 stars', seconds: 90.8, stars: 3.5 }
+      ]
+    }
+  ]
+}
+
 function state(): AppState {
+  if (initial === 'ara') return { hello: { kind: 'ara', version: '0.1.0-alpha (preview)', host: 'Browser' }, connection: null, settings: null, song: null, position: 0, ara }
   return { hello: { kind: 'instrument', version: '0.1.0-alpha (preview)', host: 'Browser' }, connection, settings, song, position: 24.3 }
 }
 
@@ -417,6 +451,20 @@ export async function mockCall(method: string, p: Record<string, unknown>): Prom
         setTimeout(() => emit('daw', { number: t.number, state: 'ready', stems: t.stems, click: true, folder: 'takes/2/daw' }), 900)
       }
       return null
+    }
+    case 'ara.state':
+      return ara
+    case 'ara.playTake': {
+      const clip = ara.clips.find((c) => c.id === p.id)
+      if (clip) {
+        clip.pending = Number(p.number)
+        setTimeout(() => {
+          clip.playing = Number(p.number)
+          clip.pending = undefined
+          emit('ara', JSON.parse(JSON.stringify(ara)))
+        }, 800)
+      }
+      return JSON.parse(JSON.stringify(ara))
     }
     case 'reaper.place':
       if (song) song.reaper = { available: true, placed: true }

@@ -74,11 +74,13 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
    the take's tempo of every bar, meter, key, sung notes and chords. Hosts that read ARA content show them (Studio One:
    chord track and tempo from the clip; Cubase and REAPER: tell me what you see).
 3. The clip plays unchanged through Plenio ARA.
+4. Open Plenio ARA's window: it lists the clips that are Plenio takes. Choose another take of the song: after a moment
+   it plays in the same clip, at the same places (a stem's clip plays the other take's same stem). The project's tempo
+   map stays the one of the clip's take.
 
 ## Not in this version
 
-- More ARA: another take in the same clip, the take's lyrics, notes and chords in Plenio ARA's own window, covers of
-  any clip: next.
+- More ARA: the take's lyrics, notes and chords in Plenio ARA's window, covers of any clip.
 - The syllables under the notes (Plenio's MIDI export has no syllables yet: API addition A6), undo and redo across all
   edits (the piano roll has its own), notes edited in REAPER read back, macOS and Linux.
 
