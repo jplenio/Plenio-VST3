@@ -83,6 +83,7 @@ struct PendingJob
     std::string id;           // the Song API's job id; empty while it is being submitted
     std::string group;        // the run it belongs to (takes of one Generate)
     int index = 0;            // its place in the run (0: the first take)
+    int number = 0;           // the take number it will be
     std::string what;
     std::int64_t submitted = 0;
     std::string status;       // queued, running, …

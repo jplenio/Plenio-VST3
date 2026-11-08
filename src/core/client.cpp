@@ -3,13 +3,64 @@
 
 #include <httplib.h>
 
+#include <atomic>
 #include <fstream>
+#include <mutex>
+#include <set>
 
 namespace plenio::core
 {
+struct CancelToken::Impl
+{
+    std::mutex lock;
+    std::set<httplib::Client*> active;
+    std::atomic<bool> closed { false };
+};
+
+CancelToken::CancelToken() : impl (std::make_shared<Impl>()) {}
+
+void CancelToken::cancel()
+{
+    std::scoped_lock l (impl->lock);
+    impl->closed = true;
+    for (auto* c : impl->active)
+        c->stop();
+}
+
+bool CancelToken::cancelled() const
+{
+    return impl->closed.load();
+}
+
 namespace
 {
 constexpr std::size_t maxAnswerBytes = 64u * 1024u * 1024u;
+
+/// A request's client, known to the token while it runs.
+class Registered
+{
+public:
+    Registered (const CancelToken& t, httplib::Client& c) : impl (t.impl), client (c)
+    {
+        std::scoped_lock l (impl->lock);
+        impl->active.insert (&client);
+    }
+    ~Registered()
+    {
+        std::scoped_lock l (impl->lock);
+        impl->active.erase (&client);
+    }
+    bool cancelled() const { return impl->closed.load(); }
+
+private:
+    std::shared_ptr<CancelToken::Impl> impl;
+    httplib::Client& client;
+};
+
+ApiError cancelledError()
+{
+    return ApiError { 0, "cancelled", "Stopped", {}, {} };
+}
 
 ApiError fromResult (const httplib::Result& r)
 {
@@ -81,7 +132,10 @@ std::string encodeSegment (std::string_view text)
     return out;
 }
 
-PlenioClient::PlenioClient (std::string host, int port) : hostName (std::move (host)), portNumber (port) {}
+PlenioClient::PlenioClient (std::string host, int port, CancelToken t)
+    : hostName (std::move (host)), portNumber (port), token (std::move (t))
+{
+}
 
 std::string PlenioClient::baseUrl() const
 {
@@ -91,22 +145,32 @@ std::string PlenioClient::baseUrl() const
 Result<Json> PlenioClient::get (const std::string& path, int timeoutSeconds) const
 {
     auto c = make (hostName, portNumber, timeoutSeconds);
-    return answer (c.Get (path));
+    Registered running (token, c);
+    if (running.cancelled())
+        return cancelledError();
+    auto r = c.Get (path);
+    return running.cancelled() ? Result<Json> (cancelledError()) : answer (r);
 }
 
 Result<Json> PlenioClient::post (const std::string& path, const Json& body, const std::string& idempotencyKey, int timeoutSeconds) const
 {
     auto c = make (hostName, portNumber, timeoutSeconds);
+    Registered running (token, c);
+    if (running.cancelled())
+        return cancelledError();
     httplib::Headers headers;
     if (! idempotencyKey.empty())
         headers.emplace ("Idempotency-Key", idempotencyKey.substr (0, 200));
-    return answer (c.Post (path, headers, body.dump (-1, ' ', false, Json::error_handler_t::replace), "application/json"));
+    auto r = c.Post (path, headers, body.dump (-1, ' ', false, Json::error_handler_t::replace), "application/json");
+    return running.cancelled() ? Result<Json> (cancelledError()) : answer (r);
 }
 
 Result<Json> PlenioClient::del (const std::string& path, int timeoutSeconds) const
 {
     auto c = make (hostName, portNumber, timeoutSeconds);
-    return answer (c.Delete (path));
+    Registered running (token, c);
+    auto r = c.Delete (path);
+    return answer (r);
 }
 
 std::optional<ApiError> PlenioClient::download (const std::string& path, const std::filesystem::path& target,
@@ -121,8 +185,9 @@ std::optional<ApiError> PlenioClient::download (const std::string& path, const s
         return ApiError { 0, "disk", "The file could not be written: " + temp.string(), {}, {} };
 
     auto c = make (hostName, portNumber, 300);
+    Registered running (token, c);
     std::uint64_t done = 0, total = 0;
-    bool stopped = false;
+    bool stopped = running.cancelled();
     auto r = c.Get (
         path,
         [&] (const httplib::Response& response)
@@ -145,7 +210,7 @@ std::optional<ApiError> PlenioClient::download (const std::string& path, const s
             return static_cast<bool> (out);
         });
     out.close();
-    if (stopped)
+    if (stopped || running.cancelled())
     {
         std::filesystem::remove (temp, ec);
         return ApiError { 0, "cancelled", "The download was stopped", {}, {} };
@@ -171,6 +236,7 @@ Result<Json> PlenioClient::upload (const std::string& path, const std::filesyste
     if (! *in)
         return ApiError { 0, "disk", "The recording could not be opened: " + file.string(), {}, {} };
     auto c = make (hostName, portNumber, 600);
+    Registered running (token, c);
     auto r = c.Post (
         path, static_cast<std::size_t> (size),
         [in] (std::size_t offset, std::size_t length, httplib::DataSink& sink)

@@ -13,6 +13,10 @@ add_library(plenio_core STATIC
     library.h library.cpp
     client.h client.cpp
     audio_file.h audio_file.cpp
+    settings.h settings.cpp
+    studio.h studio.cpp
+    session.h session.cpp
+    ../platform/main_thread.h ../platform/main_thread.cpp
 )
 plenio_target_defaults(plenio_core)
 target_include_directories(plenio_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/.." "${PLENIO_GENERATED}")

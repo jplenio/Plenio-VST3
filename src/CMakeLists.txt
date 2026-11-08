@@ -14,6 +14,10 @@ set(PLENIO_PLUGIN_SOURCES
     plugin/ara_effect.cpp
     plugin/state_stream.h
     plugin/state_stream.cpp
+    plugin/song_controller.h
+    plugin/song_controller.cpp
+    platform/dialogs.h
+    platform/dialogs.cpp
     ara/document_controller.h
     ara/document_controller.cpp
     ara/playback_renderer.h
@@ -28,8 +32,6 @@ set(PLENIO_PLUGIN_SOURCES
     ui/webview_panel.h
     ui/webview_panel.cpp
     ui/webui_resources.h
-    platform/main_thread.h
-    platform/main_thread.cpp
     "${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/vstsinglecomponenteffect.cpp"
     "${PLENIO_WEBUI_CPP}"
 )

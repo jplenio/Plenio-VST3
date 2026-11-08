@@ -7,6 +7,7 @@
 #include "plenio_version.h"
 
 #include "pluginterfaces/vst/ivsthostapplication.h"
+#include "pluginterfaces/vst/ivstevents.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/base/funknownimpl.h"
 #include "public.sdk/source/vst/utility/stringconvert.h"
@@ -18,6 +19,46 @@ using namespace Steinberg;
 
 namespace plenio::plugin
 {
+namespace
+{
+/// The player's MIDI as VST3 note events on the event output bus.
+struct EventSink : engine::MidiSink
+{
+    Vst::IEventList* out = nullptr;
+    int numSamples = 0;
+
+    void send (int offset, std::uint8_t status, std::uint8_t data1, std::uint8_t data2) override
+    {
+        if (out == nullptr)
+            return;
+        Vst::Event e {};
+        e.busIndex = 0;
+        e.sampleOffset = std::clamp (offset, 0, std::max (0, numSamples - 1));
+        e.ppqPosition = 0;
+        e.flags = Vst::Event::kIsLive;
+        if ((status & 0xF0) == 0x90 && data2 > 0)
+        {
+            e.type = Vst::Event::kNoteOnEvent;
+            e.noteOn.channel = static_cast<int16> (status & 0x0F);
+            e.noteOn.pitch = static_cast<int16> (data1);
+            e.noteOn.velocity = static_cast<float> (data2) / 127.0f;
+            e.noteOn.noteId = -1;
+            e.noteOn.length = 0;
+            e.noteOn.tuning = 0;
+        }
+        else
+        {
+            e.type = Vst::Event::kNoteOffEvent;
+            e.noteOff.channel = static_cast<int16> (status & 0x0F);
+            e.noteOff.pitch = static_cast<int16> (data1);
+            e.noteOff.velocity = 0.0f;
+            e.noteOff.noteId = -1;
+            e.noteOff.tuning = 0;
+        }
+        out->addEvent (e);
+    }
+};
+} // namespace
 
 Instrument::Instrument()
 {
@@ -60,12 +101,17 @@ tresult PLUGIN_API Instrument::initialize (FUnknown* context)
     addAudioOutput (STR16 ("Bass"), Vst::SpeakerArr::kStereo, Vst::kAux, 0);
     addAudioOutput (STR16 ("Other"), Vst::SpeakerArr::kStereo, Vst::kAux, 0);
     addAudioOutput (STR16 ("Rest"), Vst::SpeakerArr::kStereo, Vst::kAux, 0);
+
+    controller = std::make_unique<SongController> (player);
+    controller->setHostName (hostName);
     return kResultOk;
 }
 
 tresult PLUGIN_API Instrument::terminate()
 {
-    sink = {};
+    *alive = false;
+    player.clear();
+    controller.reset();
     platform::detachMainThread();
     return SingleComponentEffect::terminate();
 }
@@ -73,7 +119,6 @@ tresult PLUGIN_API Instrument::terminate()
 tresult PLUGIN_API Instrument::setBusArrangements (Vst::SpeakerArrangement* inputs, int32 numIns,
                                                    Vst::SpeakerArrangement* outputs, int32 numOuts)
 {
-    // no audio input; every output stereo
     if (numIns != 0 || numOuts != static_cast<int32> (audioOutputs.size()))
         return kResultFalse;
     for (int32 i = 0; i < numOuts; ++i)
@@ -89,7 +134,15 @@ tresult PLUGIN_API Instrument::canProcessSampleSize (int32 symbolicSampleSize)
 
 tresult PLUGIN_API Instrument::setupProcessing (Vst::ProcessSetup& setup)
 {
-    return SingleComponentEffect::setupProcessing (setup);
+    auto result = SingleComponentEffect::setupProcessing (setup);
+    const double rate = setup.sampleRate;
+    // the song is touched on the main thread only (hosts call this from various threads)
+    platform::postToMainThread ([this, rate, token = alive]
+    {
+        if (*token && controller != nullptr)
+            controller->setHostRate (rate);
+    });
+    return result;
 }
 
 tresult PLUGIN_API Instrument::setProcessing (TBool)
@@ -99,24 +152,63 @@ tresult PLUGIN_API Instrument::setProcessing (TBool)
 
 tresult PLUGIN_API Instrument::setActive (TBool state)
 {
+    if (state)
+        player.prepare (processSetup.sampleRate, processSetup.maxSamplesPerBlock);
     return SingleComponentEffect::setActive (state);
+}
+
+tresult PLUGIN_API Instrument::activateBus (Vst::MediaType type, Vst::BusDirection dir, int32 index, TBool state)
+{
+    auto result = SingleComponentEffect::activateBus (type, dir, index, state);
+    if (type == Vst::kAudio && dir == Vst::kOutput && index >= 1 && index <= engine::maxStems)
+        player.setStemOutputActive (index - 1, state != 0);
+    return result;
 }
 
 tresult PLUGIN_API Instrument::process (Vst::ProcessData& data)
 {
-    if (data.numSamples <= 0 || data.outputs == nullptr)
+    if (data.numSamples <= 0 || data.outputs == nullptr || data.numOutputs < 1)
         return kResultOk;
 
-    for (int32 b = 0; b < data.numOutputs; ++b)
+    engine::Block block;
+    block.numSamples = data.numSamples;
+    if (data.processContext != nullptr)
     {
-        auto& bus = data.outputs[b];
-        if (bus.channelBuffers32 == nullptr)
-            continue;
-        for (int32 c = 0; c < bus.numChannels; ++c)
-            if (bus.channelBuffers32[c] != nullptr)
-                std::memset (bus.channelBuffers32[c], 0, sizeof (float) * static_cast<size_t> (data.numSamples));
-        bus.silenceFlags = bus.numChannels >= 64 ? ~0ull : ((1ull << bus.numChannels) - 1ull);
+        block.projectSample = data.processContext->projectTimeSamples;
+        block.playing = (data.processContext->state & Vst::ProcessContext::kPlaying) != 0;
     }
+
+    auto& main = data.outputs[0];
+    if (main.numChannels < 2 || main.channelBuffers32 == nullptr)
+        return kResultOk;
+    block.main[0] = main.channelBuffers32[0];
+    block.main[1] = main.channelBuffers32[1];
+    for (int s = 0; s < engine::maxStems && s + 1 < data.numOutputs; ++s)
+    {
+        auto& bus = data.outputs[s + 1];
+        auto* info = s + 1 < static_cast<int> (audioOutputs.size()) ? FCast<Vst::AudioBus> (audioOutputs[static_cast<std::size_t> (s + 1)].get()) : nullptr;
+        if (bus.numChannels >= 2 && bus.channelBuffers32 != nullptr && info != nullptr && info->isActive())
+        {
+            block.stems[s][0] = bus.channelBuffers32[0];
+            block.stems[s][1] = bus.channelBuffers32[1];
+        }
+        else if (bus.channelBuffers32 != nullptr)
+        {
+            for (int32 c = 0; c < bus.numChannels; ++c)
+                if (bus.channelBuffers32[c] != nullptr)
+                    std::memset (bus.channelBuffers32[c], 0, sizeof (float) * static_cast<size_t> (data.numSamples));
+        }
+    }
+
+    EventSink sink;
+    sink.out = data.outputEvents;
+    sink.numSamples = data.numSamples;
+    block.midi = data.outputEvents != nullptr ? &sink : nullptr;
+
+    player.render (block);
+
+    for (int32 b = 0; b < data.numOutputs; ++b)
+        data.outputs[b].silenceFlags = 0;
     return kResultOk;
 }
 
@@ -125,63 +217,33 @@ tresult PLUGIN_API Instrument::setState (IBStream* state)
     auto read = readState (state);
     if (! read)
         return kResultFalse;
-    restored = *read;
-    const auto& editor = json::obj (restored, "editor");
-    editorWidth = static_cast<int> (json::integer (editor, "width", 0));
-    editorHeight = static_cast<int> (json::integer (editor, "height", 0));
+    if (controller != nullptr)
+    {
+        if (platform::isMainThread())
+            controller->setState (*read);
+        else
+            platform::postToMainThread ([this, s = *read, token = alive]
+            {
+                if (*token && controller != nullptr)
+                    controller->setState (s);
+            });
+    }
     return kResultOk;
 }
 
 tresult PLUGIN_API Instrument::getState (IBStream* state)
 {
-    Json out = restored;
+    Json out = controller != nullptr ? controller->getState() : Json::object();
     out["schema"] = "plenio-vst3.instrument/1";
     out["version"] = PLENIO_VERSION_STRING;
-    if (editorWidth > 0 && editorHeight > 0)
-        out["editor"] = { { "width", editorWidth }, { "height", editorHeight } };
     return writeState (state, out) ? kResultOk : kResultFalse;
 }
 
 IPlugView* PLUGIN_API Instrument::createView (FIDString name)
 {
-    if (FIDStringsEqual (name, Vst::ViewType::kEditor))
-        return new ui::EditorView (this, *this);
+    if (FIDStringsEqual (name, Vst::ViewType::kEditor) && controller != nullptr)
+        return new ui::EditorView (this, *controller);
     return nullptr;
-}
-
-Json Instrument::call (const std::string& method, const Json& params)
-{
-    if (method == "ui.hello")
-        return { { "kind", "instrument" },
-                 { "version", PLENIO_VERSION_STRING },
-                 { "host", hostName },
-                 { "platform", "windows" } };
-
-    if (method == "ui.log")
-    {
-        log::info ("UI: {}", json::str (params, "message", {}, 2000));
-        return nullptr;
-    }
-
-    throw ui::CallError ("unknown_method", "Plenio does not know the call '" + method + "'.");
-}
-
-void Instrument::setEventSink (EventSink s)
-{
-    sink = std::move (s);
-}
-
-std::pair<int, int> Instrument::editorSize() const
-{
-    if (editorWidth > 0 && editorHeight > 0)
-        return { editorWidth, editorHeight };
-    return { ui::EditorView::defaultWidth, ui::EditorView::defaultHeight };
-}
-
-void Instrument::setEditorSize (int width, int height)
-{
-    editorWidth = std::clamp (width, ui::EditorView::minWidth, 6000);
-    editorHeight = std::clamp (height, ui::EditorView::minHeight, 4000);
 }
 
 } // namespace plenio::plugin

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -32,10 +33,22 @@ using Result = std::variant<T, ApiError>;
 template <typename T>
 bool ok (const Result<T>& r) { return std::holds_alternative<T> (r); }
 
+/// Stops every request made with it, from another thread (a plug-in that goes must not wait for the network).
+class CancelToken
+{
+public:
+    CancelToken();
+    void cancel();
+    bool cancelled() const;
+
+    struct Impl;
+    std::shared_ptr<Impl> impl;
+};
+
 class PlenioClient
 {
 public:
-    PlenioClient (std::string host, int port);
+    PlenioClient (std::string host, int port, CancelToken token = {});
 
     const std::string& host() const { return hostName; }
     int port() const { return portNumber; }
@@ -58,6 +71,7 @@ public:
 private:
     std::string hostName;
     int portNumber;
+    CancelToken token;
 };
 
 /// Percent-encoding of a path segment (UTF-8).

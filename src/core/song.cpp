@@ -457,7 +457,7 @@ Json toJson (const Song& s)
     j["active_take"] = s.activeTake;
     Json jobs = Json::array();
     for (const auto& p : s.jobs)
-        jobs.push_back ({ { "id", p.id }, { "group", p.group }, { "index", p.index }, { "what", p.what },
+        jobs.push_back ({ { "id", p.id }, { "group", p.group }, { "index", p.index }, { "number", p.number }, { "what", p.what },
                           { "submitted", p.submitted }, { "status", p.status }, { "stage", p.stage }, { "progress", p.progress } });
     j["jobs"] = jobs;
     return j;
@@ -508,6 +508,7 @@ Song songFromJson (const Json& j)
         job.id = json::str (p, "id", {}, 128);
         job.group = json::str (p, "group", {}, 64);
         job.index = static_cast<int> (std::clamp<std::int64_t> (json::integer (p, "index", 0), 0, 16));
+        job.number = static_cast<int> (std::clamp<std::int64_t> (json::integer (p, "number", 0), 0, 100000));
         job.what = json::str (p, "what", {}, 200);
         job.submitted = json::integer (p, "submitted", 0);
         job.status = json::str (p, "status", {}, 40);
