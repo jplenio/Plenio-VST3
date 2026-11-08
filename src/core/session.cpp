@@ -451,7 +451,10 @@ void SongSession::runTakes (std::shared_ptr<Shared> shared, RunInput in)
 
     Json base = { { "template", in.templateId },
                   { "fields", plan.fields },
-                  { "release", { { "folder", "plenio-vst3" }, { "song_page", false }, { "sheet_music", false }, { "mp3", false } } },
+                  // the release as the plug-in needs it: FLAC and the sung lines, no song page, no sheet music, no MP3
+                  // (the template's release fields: sheet_music is a choice, the others are switches)
+                  { "release", { { "folder", "plenio-vst3" }, { "flac", true }, { "mp3", false }, { "wav", false }, { "song_page", false },
+                                 { "sheet_music", "off" }, { "lyrics_srt", true } } },
                   { "client", { { "name", "Plenio VST3" }, { "song", in.songId } } },
                   { "strict", false } };
     if (in.stems && connection.has ("stems"))

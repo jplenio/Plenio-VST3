@@ -1,21 +1,40 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-import { call } from './bridge'
+import LibraryDialog from './components/LibraryDialog.vue'
+import LicenceDialog from './components/LicenceDialog.vue'
+import NewSongDialog from './components/NewSongDialog.vue'
+import OfflineBanner from './components/OfflineBanner.vue'
+import SettingsDialog from './components/SettingsDialog.vue'
+import SongView from './components/SongView.vue'
+import Toasts from './components/Toasts.vue'
+import TopBar from './components/TopBar.vue'
+import Welcome from './components/Welcome.vue'
+import { start, store } from './store'
 
-interface Hello {
-  kind: string
-  version: string
-  host: string
-  platform: string
+const dialog = ref<'' | 'new' | 'cover' | 'library' | 'settings' | 'licence'>('')
+let afterLicence: '' | 'new' | 'cover' = ''
+const problem = ref('')
+
+function open(which: 'new' | 'cover' | 'library' | 'settings'): void {
+  if ((which === 'new' || which === 'cover') && store.settings && !store.settings.licenceAccepted) {
+    afterLicence = which
+    dialog.value = 'licence'
+    return
+  }
+  dialog.value = which
 }
 
-const hello = ref<Hello | null>(null)
-const problem = ref('')
+function licenceDone(accepted: boolean): void {
+  dialog.value = accepted ? afterLicence : ''
+  afterLicence = ''
+}
 
 onMounted(async () => {
   try {
-    hello.value = await call<Hello>('ui.hello')
+    await start()
+    const preset = new URLSearchParams(location.search).get('state')
+    if (preset === 'new') dialog.value = 'new'
   } catch (error) {
     problem.value = error instanceof Error ? error.message : String(error)
   }
@@ -23,47 +42,46 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="shell">
-    <header class="brand">
-      <span class="logo" aria-hidden="true"></span>
-      <h1>Plenio</h1>
-    </header>
-    <p v-if="hello" class="facts">
-      {{ hello.kind === 'ara' ? 'Plenio ARA' : 'Plenio' }} {{ hello.version }} · {{ hello.host || 'unknown host' }}
-    </p>
-    <p v-else-if="problem" class="problem">{{ problem }}</p>
-  </main>
+  <div class="app">
+    <template v-if="store.ready">
+      <TopBar @library="open('library')" @settings="open('settings')" @new="open('new')" />
+      <OfflineBanner />
+      <SongView v-if="store.song" @new="open('new')" />
+      <Welcome v-else @new="open('new')" @cover="open('cover')" @library="open('library')" />
+    </template>
+    <div v-else-if="problem" class="problem">{{ problem }}</div>
+    <div v-else class="loading"><span class="dot" /></div>
+
+    <NewSongDialog v-if="dialog === 'new' || dialog === 'cover'" :cover="dialog === 'cover'" @close="dialog = ''" />
+    <LibraryDialog v-if="dialog === 'library'" @close="dialog = ''" />
+    <SettingsDialog v-if="dialog === 'settings'" @close="dialog = ''" />
+    <LicenceDialog v-if="dialog === 'licence'" @done="licenceDone" />
+    <Toasts />
+  </div>
 </template>
 
 <style scoped>
-.shell {
-  display: grid;
-  place-content: center;
-  gap: 12px;
+.app {
   height: 100%;
-  text-align: center;
-}
-.brand {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  justify-content: center;
+  flex-direction: column;
+  background: radial-gradient(1200px 600px at 85% -10%, rgba(138, 77, 255, 0.1), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255, 61, 139, 0.06), transparent 60%), var(--bg);
 }
-.logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--pink), var(--purple) 60%, var(--amber));
+.loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
-h1 {
-  margin: 0;
-  font-size: 34px;
-  letter-spacing: 0.02em;
-}
-.facts {
-  color: var(--text-dim);
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1s infinite;
 }
 .problem {
+  margin: auto;
   color: var(--danger);
 }
 </style>

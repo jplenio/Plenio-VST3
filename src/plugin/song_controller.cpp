@@ -368,7 +368,8 @@ Json SongController::songView() const
             stems.push_back (st.name);
         Json item = { { "index", i }, { "number", t.number }, { "title", t.title }, { "label", t.label() },
                       { "seconds", t.seconds }, { "created", t.created }, { "what", t.what }, { "stems", stems },
-                      { "hasAudio", session->takeAudio (static_cast<int> (i)).has_value() }, { "measured", t.bars.has_value() } };
+                      { "hasAudio", session->takeAudio (static_cast<int> (i)).has_value() }, { "measured", t.bars.has_value() },
+                      { "audioAt", timeline::layOut (t.timing()).audioAt } };
         if (t.stars)
             item["stars"] = *t.stars;
         takes.push_back (item);

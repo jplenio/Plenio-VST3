@@ -2,6 +2,9 @@
 
 #include "core/paths.h"
 
+#include <cstdlib>
+#include <filesystem>
+
 using namespace plenio;
 
 TEST_CASE ("safe names keep text and drop what file systems refuse")
@@ -28,4 +31,17 @@ TEST_CASE ("UTF-8 paths survive the round trip")
 {
     auto p = paths::fromUtf8 ("C:/Lieder/Grüße.flac");
     CHECK (paths::toUtf8 (p) == "C:/Lieder/Grüße.flac");
+}
+
+TEST_CASE ("PLENIO_VST3_HOME keeps settings, cache and songs apart")
+{
+#ifdef _WIN32
+    auto dev = std::filesystem::temp_directory_path() / "plenio-vst3-home-test";
+    _wputenv_s (L"PLENIO_VST3_HOME", dev.wstring().c_str());
+    CHECK (paths::appData() == dev / "config");
+    CHECK (paths::localData() == dev / "cache");
+    CHECK (paths::defaultLibrary() == dev / "Songs");
+    _wputenv_s (L"PLENIO_VST3_HOME", L"");
+    CHECK (paths::appData() != dev / "config");
+#endif
 }

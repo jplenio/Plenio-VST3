@@ -9,7 +9,7 @@
 | **Platforms** | Windows x64 first; the code is kept portable for macOS and Linux |
 | **Plan made** | 2026-11-08 |
 | **Last updated** | 2026-11-08 |
-| **State** | Phases 0-2 done (Plenio 1.6.0 / Song API 1.4 on branch `song-api-1.4`, checked live); phase 3 in progress |
+| **State** | Phases 0-4 done; phase 5 (the UI) in its last steps: first songs made end to end in the plug-in on the dev ComfyUI |
 
 Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 
@@ -22,9 +22,9 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | 0 | Analysis, design, decisions (this document) | ✅ done |
 | 1 | Foundation: repository, dependencies, build, both plug-ins load, web UI in the plug-in window | ✅ done (REAPER check in phase 8) |
 | 2 | Plenio Song API 1.4 (in the Plenio repository): stems with every take, bars of a take, model readiness | ✅ done (A4 later) |
-| 3 | Core: song library, Plenio client, jobs (1–4 takes a run), timeline math, MIDI, audio files | 🔄 in progress |
-| 4 | Engine: takes and stems played in sync with the host, multi-out, MIDI out, state | ⬜ |
-| 5 | User interface: new song and cover, song view, takes, piano roll, chords, lyrics, generate | ⬜ |
+| 3 | Core: song library, Plenio client, jobs (1–4 takes a run), timeline math, MIDI, audio files | ✅ done |
+| 4 | Engine: takes and stems played in sync with the host, multi-out, MIDI out, state | ✅ done |
+| 5 | User interface: new song and cover, song view, takes, piano roll, chords, lyrics, generate | 🔄 in progress |
 | 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | ⬜ |
 | 7 | ARA 2: Plenio ARA on clips | ⬜ |
 | 8 | Test version for the owner: end to end, live, in REAPER and Cubase | ⬜ |
@@ -327,37 +327,59 @@ the first song.
 
 ### Phase 3: core
 
-- [ ] Song and take model, JSON round trip, sanitising of hostile input
-- [ ] Library: folders, atomic writes, song list, finding moved files
-- [ ] Plenio client: discovery (8188, 8000, `comfyui-start.json`), capabilities, templates and briefs cached, errors in words
-- [ ] Starting ComfyUI from the remembered start
-- [ ] Job runner: 1–4 takes a run (a new song: the first take writes and composes, the others follow with its documents), downloads, score MIDI, bars, stems, cancel, resume after reopening
-- [ ] Plan rules (what Generate does) ported from the SoundCraft add-in
-- [ ] Bar map, lay-out, tempo map (ported, with the add-in's tests)
-- [ ] Standard MIDI files: read Plenio's, write the DAW's (tempo map, sections, chords, lyrics), splice changed tracks for Plenio
-- [ ] Chord symbols (parse, voice), SRT, release record (lines, warp, stars)
-- [ ] Audio: FLAC/WAV/MP3 decoding, resampling to the host's rate, peaks for the waveforms
-- [ ] Unit tests
+- [x] Song and take model, JSON round trip, sanitising of hostile input
+  💡 `core/song`: the song in the project (state) and in the library are the same JSON; every field capped and checked; the score MIDI of each take kept in base64, so a project plays and edits without the library's score files.
+- [x] Library: folders, atomic writes, song list, finding moved files
+  💡 `Documents\Plenio\Songs\<title> [<id>]`: a song is found by its id, wherever its folder moved or was renamed; files are written next to the target, then renamed.
+- [x] Plenio client: discovery (8188, 8000, `comfyui-start.json`), capabilities, templates and briefs cached, errors in words
+  💡 `core/studio`: one per process, watches the connection (3 s while looking, 10 s when connected), caches templates, styles and models in `api-cache.json`: the forms work when ComfyUI is not running.
+- [x] Starting ComfyUI from the remembered start
+  💡 The owner's own start (`~/.plenio/comfyui-start.json`) runs detached with its log in the cache folder; nothing in the ComfyUI install changes.
+- [x] Job runner: 1–4 takes a run (a new song: the first take writes and composes, the others follow with its documents), downloads, score MIDI, bars, stems, cancel, resume after reopening
+  💡 `core/session`: edited notes are spliced into the take's MIDI and imported as the score; jobs carry an idempotency key; a run saved in the library is followed again when the project opens.
+- [x] Plan rules (what Generate does) ported from the SoundCraft add-in
+  💡 rewrite (brief changed), recompose (words changed), sing your notes (notes or chords changed), new take.
+- [x] Bar map, lay-out, tempo map (ported, with the add-in's tests)
+- [x] Standard MIDI files: read Plenio's, write the DAW's (tempo map, sections, chords, lyrics), splice changed tracks for Plenio
+  💡 Reading, splicing and the tempo map are here; the DAW's files are written in phase 6 with drag and drop.
+- [x] Chord symbols (parse, voice), SRT, release record (lines, warp, stars)
+- [x] Audio: FLAC/WAV/MP3 decoding, resampling to the host's rate, peaks for the waveforms
+  💡 dr_libs and r8brain; peaks cached per take (`peaks-1600.json`).
+- [x] Unit tests
+  💡 26 cases, 16249 assertions (doctest), run after every build.
 
 ### Phase 4: engine
 
-- [ ] Take and stems played at the host's sample position; any block size and rate; loops and jumps
-- [ ] Main output modes: mix, stems summed, instrumental, vocals only; stem levels, mute and solo
-- [ ] Stem outputs (5 stereo buses), MIDI out (melody ch. 1, instrument line ch. 2, chords ch. 3)
-- [ ] Listening while the host stands (preview)
-- [ ] State: settings and the song (without audio) in the project; reopening with and without the library
-- [ ] Test host: offline render at several positions, block sizes and rates against the expected samples
+- [x] Take and stems played at the host's sample position; any block size and rate; loops and jumps
+  💡 `engine/player`: the audio thread reads the take at the host's project sample, so loops, jumps and offline render need nothing extra; a new take is swapped in without locks and crossfaded over 6 ms; old takes are freed off the audio thread.
+- [x] Main output modes: mix, stems summed, instrumental, vocals only; stem levels, mute and solo
+  💡 Mute, solo and level per stem give the modes (instrumental: vocals muted).
+- [x] Stem outputs (5 stereo buses), MIDI out (melody ch. 1, instrument line ch. 2, chords ch. 3)
+  💡 An activated stem output takes its stem out of the main output.
+- [x] Listening while the host stands (preview)
+- [x] State: settings and the song (without audio) in the project; reopening with and without the library
+  💡 The newer of project and library wins; without the library the project keeps the song, its documents and scores: editing works, playing needs the audio.
+- [x] Test host: offline render at several positions, block sizes and rates against the expected samples
+  💡 `tests/engine/test_player.cpp`.
 
 ### Phase 5: user interface
 
-- [ ] Design system (colours, type, controls, icons), the bridge with a mock for the browser
-- [ ] Welcome, connection status, settings (library folder, ComfyUI)
-- [ ] New song and new cover (styles, idea or own lyrics, every field, takes per run, stems)
-- [ ] Song view: ruler, form, take lanes with waveforms and stars, stems, sung lines, playhead
+- [x] Design system (colours, type, controls, icons), the bridge with a mock for the browser
+  💡 Plenio's colours (pink, purple, amber on a dark ground), Segoe UI Variable, drawn SVG icons; outside the plug-in a demo answers (`npm run build:mock`, `?state=song|empty|busy|offline|new`) with data captured from Plenio 1.6.0; the plug-in's own build leaves the demo out (145 KB).
+- [x] Welcome, connection status, settings (library folder, ComfyUI)
+  💡 A banner says when the studio is offline (playing and editing still work) and offers *Start ComfyUI*; the models' licences are asked before the first song, as the add-in asks.
+- [x] New song and new cover (styles, idea or own lyrics, every field, takes per run, stems)
+  💡 The form is Plenio's own (`frontend/src/player/make/form.ts`, ported): a style fills every field, only the fields that apply are shown and sent, *More settings* holds the rest of the template (cover art off by default: a DAW has no use for it).
+- [x] Song view: ruler, form, take lanes with waveforms and stars, stems, sung lines, playhead
+  💡 Every lane on the project's seconds, the bars as measured in the take; takes in the making lie where the song will be, with their progress.
 - [ ] Piano roll (select, move, lengthen, draw, delete, transpose, snap), syllables under the notes
-- [ ] Chord lane (pick root and quality), lyrics editor (section tags, differences)
+  💡 All but the syllables.
+- [x] Chord lane (pick root and quality), lyrics editor (section tags, differences)
+  💡 Click a chord to change it, double-click the lane for a new one: Plenio's 15 qualities and a bass note.
 - [ ] Generate: what it will do, progress per take, cancel; undo and redo of edits
-- [ ] Screenshots of every view checked
+  💡 All but undo and redo across edits (the piano roll has its own undo).
+- [x] Screenshots of every view checked
+  💡 In the browser (demo) and in the plug-in in EditorHost at 150 % scaling, driven by `tools/dev/cdp.mjs`.
 
 ### Phase 6: DAW integration
 
@@ -396,3 +418,4 @@ the first song.
 |---|---|
 | 2026-11-08 | Plan made after reading the SoundCraft add-in and Plenio; decisions D1–D11; the owner's added requirement (projects usable without ComfyUI and Plenio) in D5 |
 | 2026-11-08 | Phase 1 done (bundle, validator, WebView editor checked at 150 % scaling); phase 2 done: Plenio 1.6.0 with Song API 1.4 (stems, bars, models), checked live on a dev ComfyUI; D9 corrected (the stems sit behind a switch) |
+| 2026-11-08 | Phases 3 and 4 done; phase 5: the whole UI; the first song made end to end in the plug-in (EditorHost, dev ComfyUI) found the release's `sheet_music` sent as a switch (it is a choice): fixed; `PLENIO_VST3_HOME` keeps development apart from the owner's settings and songs |

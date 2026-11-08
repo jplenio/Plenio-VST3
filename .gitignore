@@ -12,3 +12,4 @@
 .vscode/
 __pycache__/
 *.pyc
+/webui/dist-mock/

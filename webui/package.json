@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:mock": "vite build --mode mock --outDir dist-mock",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm run test && npm run build"

@@ -1,0 +1,340 @@
+<script setup lang="ts">
+// Beside the timeline: the words (lyrics and the sound), the song's brief, and how the song gets into the project.
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+
+import { call } from '../bridge'
+import { fromStyle, moreGroups, request, type Values } from '../form'
+import { act, loadBriefs, loadTemplate, store } from '../store'
+import type { Brief, TemplateDetail } from '../types'
+import BriefForm from './BriefForm.vue'
+import Icon from './Icon.vue'
+
+const tab = ref<'words' | 'brief' | 'daw'>('words')
+const collapsed = ref(false)
+const song = computed(() => store.song!)
+
+// --- the words ---
+
+const lyrics = ref('')
+const style = ref('')
+let lyricsTimer = 0
+let styleTimer = 0
+
+function syncWords(): void {
+  if (!lyricsTimer) lyrics.value = song.value.documents.lyrics?.text ?? ''
+  if (!styleTimer) style.value = song.value.documents.style?.text ?? ''
+}
+watch(() => [song.value.id, song.value.documents.lyrics?.text, song.value.documents.style?.text], syncWords, { immediate: true })
+
+function typedLyrics(): void {
+  window.clearTimeout(lyricsTimer)
+  lyricsTimer = window.setTimeout(() => {
+    lyricsTimer = 0
+    if (lyrics.value !== (song.value.documents.lyrics?.text ?? '')) void act('song.document', { kind: 'lyrics', text: lyrics.value })
+  }, 700)
+}
+function typedStyle(): void {
+  window.clearTimeout(styleTimer)
+  styleTimer = window.setTimeout(() => {
+    styleTimer = 0
+    if (style.value !== (song.value.documents.style?.text ?? '')) void act('song.document', { kind: 'style', text: style.value })
+  }, 700)
+}
+onBeforeUnmount(() => {
+  window.clearTimeout(lyricsTimer)
+  window.clearTimeout(styleTimer)
+})
+
+const lyricsChanged = computed(() => song.value.changes.includes('lyrics'))
+const styleChanged = computed(() => song.value.changes.includes('style'))
+const noTake = computed(() => song.value.takes.length === 0)
+
+// --- the brief ---
+
+const template = ref<TemplateDetail | null>(null)
+const styles = ref<Brief[]>([])
+const values = ref<Record<string, string[]>>({})
+const simple = reactive<Values>({})
+const more = reactive<Values>({})
+let briefTimer = 0
+
+async function loadBrief(): Promise<void> {
+  const kind = song.value.kind
+  const [detail, briefs] = await Promise.all([loadTemplate(kind === 'cover' ? 'yue2-cover' : 'yue2-song'), loadBriefs(kind)])
+  template.value = detail
+  styles.value = briefs.briefs
+  values.value = briefs.values
+  fillBrief()
+}
+
+function fillBrief(): void {
+  const f = song.value.fields as Values
+  const moreIds = new Set(moreGroups(template.value).flatMap((g) => g.fields.map((x) => x.id)))
+  for (const k of Object.keys(simple)) delete simple[k]
+  for (const k of Object.keys(more)) delete more[k]
+  for (const [k, v] of Object.entries(f)) (moreIds.has(k) ? more : simple)[k] = v
+  for (const g of moreGroups(template.value)) for (const x of g.fields) if (!(x.id in more)) more[x.id] = x.default as string | number | boolean
+}
+
+watch(tab, (t) => {
+  if (t === 'brief' && !template.value) void loadBrief()
+})
+watch(
+  () => song.value.id,
+  () => {
+    template.value = null
+    if (tab.value === 'brief') void loadBrief()
+  }
+)
+watch(
+  () => song.value.fields,
+  () => {
+    if (!briefTimer && template.value) fillBrief()
+  }
+)
+
+function briefChanged(): void {
+  window.clearTimeout(briefTimer)
+  briefTimer = window.setTimeout(() => {
+    briefTimer = 0
+    void act('song.fields', { fields: request(song.value.kind, simple, more, template.value) })
+  }, 600)
+}
+
+function pickStyle(id: string): void {
+  const s = styles.value.find((x) => x.id === id) ?? null
+  const next = fromStyle(s, song.value.kind, template.value, { ...simple })
+  for (const k of Object.keys(simple)) delete simple[k]
+  Object.assign(simple, next)
+  briefChanged()
+}
+
+const briefChangedNow = computed(() => song.value.changes.includes('brief'))
+
+// --- the DAW ---
+
+const midiOut = ref(true)
+function setMidiOut(on: boolean): void {
+  midiOut.value = on
+  void call('player.midiOut', { on })
+}
+</script>
+
+<template>
+  <aside class="side" :class="{ collapsed }">
+    <div class="tabs">
+      <template v-if="!collapsed">
+        <button :class="{ on: tab === 'words' }" @click="tab = 'words'"><Icon name="lyrics" :size="14" />Words</button>
+        <button :class="{ on: tab === 'brief' }" @click="tab = 'brief'"><Icon name="sliders" :size="14" />Brief</button>
+        <button :class="{ on: tab === 'daw' }" @click="tab = 'daw'"><Icon name="export" :size="14" />DAW</button>
+      </template>
+      <div class="spacer" />
+      <button class="btn ghost small icon" :title="collapsed ? 'Show the panel' : 'Hide the panel'" @click="collapsed = !collapsed">
+        <Icon :name="collapsed ? 'chevron-right' : 'chevron-down'" :size="14" :style="{ transform: collapsed ? '' : 'rotate(90deg)' }" />
+      </button>
+    </div>
+
+    <div v-if="!collapsed" class="side-scroll">
+      <!-- the words -->
+      <section v-if="tab === 'words'" class="pane words">
+        <div class="pane-head">
+          <span class="label">Lyrics</span>
+          <span v-if="lyricsChanged" class="chip">changed</span>
+          <div class="spacer" />
+          <button v-if="lyricsChanged" class="btn ghost small" title="Back to the lyrics of the take" @click="act('song.resetDocument', { kind: 'lyrics' })">
+            <Icon name="undo" :size="12" />Undo
+          </button>
+        </div>
+        <textarea
+          v-model="lyrics"
+          class="textarea lyrics"
+          spellcheck="false"
+          :placeholder="noTake ? 'The lyrics come with the first take. Or write your own here.' : ''"
+          @input="typedLyrics"
+        />
+        <p class="tip muted">
+          Change a word, a line, a part: the next take sings it. New words get new notes; the rest of the song stays.
+        </p>
+        <div class="pane-head">
+          <span class="label">Sound</span>
+          <span v-if="styleChanged" class="chip">changed</span>
+          <div class="spacer" />
+          <button v-if="styleChanged" class="btn ghost small" title="Back to the sound of the take" @click="act('song.resetDocument', { kind: 'style' })">
+            <Icon name="undo" :size="12" />Undo
+          </button>
+        </div>
+        <textarea v-model="style" class="textarea sound" rows="3" spellcheck="false" placeholder="genre, instruments, voice …" @input="typedStyle" />
+      </section>
+
+      <!-- the brief -->
+      <section v-else-if="tab === 'brief'" class="pane">
+        <p class="tip muted intro">
+          What Plenio wrote the song from. Change it to have the song written anew: new words, new music.
+        </p>
+        <div v-if="briefChangedNow" class="notice"><Icon name="info" :size="13" />The next run writes the song anew.</div>
+        <template v-if="template">
+          <div class="field">
+            <label class="field-label">Style</label>
+            <select class="select" :value="String(simple.template ?? 'none')" @change="pickStyle(($event.target as HTMLSelectElement).value)">
+              <option value="none">No style</option>
+              <option v-for="s in styles" :key="s.id" :value="s.id">{{ s.group ? `${s.group} · ` : '' }}{{ s.name }}</option>
+            </select>
+          </div>
+          <BriefForm :kind="song.kind" :template="template" :values="values" :simple="simple" :more="more" compact @changed="briefChanged" />
+        </template>
+        <p v-else class="muted">The brief's form comes from Plenio once ComfyUI has run once.</p>
+      </section>
+
+      <!-- the DAW -->
+      <section v-else class="pane daw">
+        <div class="card">
+          <div class="card-head"><Icon name="music" :size="15" /><b>Plays in time</b></div>
+          <p class="muted">
+            This instrument plays the chosen take in time with your project, from bar {{ (song.layout?.leadInBars ?? 0) + 1 }}.
+            Set the project's tempo map to the song's bars, and everything you add sits in the song's bars.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-head"><Icon name="wave" :size="15" /><b>Stems on their own channels</b></div>
+          <p class="muted">
+            Activate the outputs Vocals, Drums, Bass, Other and Rest in your DAW: each stem then plays there, and leaves the
+            main output.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <Icon name="music" :size="15" /><b>MIDI out</b>
+            <div class="spacer" />
+            <label class="toggle"><input type="checkbox" :checked="midiOut" @change="setMidiOut(($event.target as HTMLInputElement).checked)" /><span class="track" /></label>
+          </div>
+          <p class="muted">The melody (channel 1), the instrument line (2) and the chords (3) go out as MIDI: route them to another instrument.</p>
+        </div>
+        <button class="btn" @click="act('song.reveal')"><Icon name="folder" :size="14" />Show the song's files</button>
+      </section>
+    </div>
+  </aside>
+</template>
+
+<style scoped>
+.side {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: rgba(22, 19, 31, 0.55);
+  min-height: 0;
+  transition: width 0.15s;
+}
+.side.collapsed {
+  width: 40px;
+}
+.tabs {
+  height: 38px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs > button:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.tabs > button:not(.btn):hover {
+  color: var(--text);
+}
+.tabs > button.on {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.spacer {
+  flex: 1;
+}
+.side-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.pane {
+  padding: 12px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+.words {
+  height: 100%;
+}
+.lyrics {
+  flex: 1;
+  min-height: 260px;
+  resize: none;
+  line-height: 1.6;
+  font-size: 13px;
+}
+.sound {
+  min-height: 64px;
+}
+.tip {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.intro {
+  margin-bottom: 2px;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 178, 62, 0.08);
+  border: 1px solid rgba(255, 178, 62, 0.25);
+  color: #f3d7a6;
+  font-size: 12px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 550;
+}
+.card {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+</style>

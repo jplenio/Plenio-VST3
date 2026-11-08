@@ -51,8 +51,16 @@ std::filesystem::path home()
 #endif
 }
 
+/// Development and tests: PLENIO_VST3_HOME keeps the settings, the cache and the songs in a folder of their own.
+std::filesystem::path devHome()
+{
+    return env ("PLENIO_VST3_HOME");
+}
+
 std::filesystem::path appData()
 {
+    if (auto dev = devHome(); ! dev.empty())
+        return dev / "config";
 #ifdef _WIN32
     auto base = knownFolder (FOLDERID_RoamingAppData);
     if (base.empty())
@@ -68,6 +76,8 @@ std::filesystem::path appData()
 
 std::filesystem::path localData()
 {
+    if (auto dev = devHome(); ! dev.empty())
+        return dev / "cache";
 #ifdef _WIN32
     auto base = knownFolder (FOLDERID_LocalAppData);
     if (base.empty())
@@ -83,6 +93,8 @@ std::filesystem::path localData()
 
 std::filesystem::path defaultLibrary()
 {
+    if (auto dev = devHome(); ! dev.empty())
+        return dev / "Songs";
 #ifdef _WIN32
     auto docs = knownFolder (FOLDERID_Documents);
     if (docs.empty())
