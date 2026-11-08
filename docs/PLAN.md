@@ -390,7 +390,7 @@ the first song.
 - [x] DAW-ready files: audio padded to start at the project's start, MIDI with tempo map, sections, chords and lyrics, a click track
   💡 `core/daw_export` (tested): 24-bit WAV of the take and its stems with the lead-in as silence, the score as MIDI (tempo of every measure, meters, key, sections as markers, sung lines as lyrics, the chords voiced and named), one MIDI file per part, the tempo map alone, a click on every beat; in `takes/<n>/daw`, made once per take (about 3 s), the MIDI again before every drag so the latest edits go along.
 - [~] REAPER: the song on tracks (folder, takes, stems, MIDI, lyrics, regions, tempo map), take choice both ways, notes read back
-  💡 Built through `IReaperHostApplication`, as the SoundCraft add-in lays the song out: a folder, Lyrics (an item per line), Song (every take of the song as one of REAPER's takes), Melody, Instrument Line, Chords (muted), the stems; regions; the tempo map from the take's bars (optional). The take chosen on the Song track and in Plenio stay the same; the instrument is quiet while REAPER plays the tracks. Open: notes read back from REAPER's MIDI. Not tried in REAPER yet: the owner's test (an automated REAPER run cannot be kept apart from the owner's REAPER settings).
+  💡 Built through `IReaperHostApplication`, as the SoundCraft add-in lays the song out: a folder, Lyrics (an item per line), Song (every take of the song as one of REAPER's takes), Melody, Instrument Line, Chords (muted), the stems; regions; the tempo map from the take's bars (optional). The take chosen on the Song track and in Plenio stay the same; the instrument is quiet while REAPER plays the tracks. The audio keeps its time (timebase Time): a tempo map moves REAPER's grid onto the song, never the song. The owner's first test found a take dropped in before the tempo map playing at 76/120 of its speed (REAPER's default timebase stretches items when the tempo changes): Plenio now keeps any of its audio in the project in time (once per item, so a timebase chosen later stays), *Put on tracks* sets the tempo map before the items and replaces only the items it made. Tested against a fake REAPER that stretches items as REAPER's timebase does (`tests/plugin/test_reaper.cpp`). Open: notes read back from REAPER's MIDI. Not tried in REAPER yet: the owner's test (an automated REAPER run cannot be kept apart from the owner's REAPER settings).
 - [x] Keys the UI does not use go to the host (space)
   💡 REAPER: its own play/stop action; other hosts: the key posted to the host's window that holds the editor.
 
@@ -413,6 +413,7 @@ the first song.
 - [x] Reopened without ComfyUI: everything but Generate works
   💡 The song opens from the library with its takes, waveforms, words, chords and notes; editing works; Generate is off and says why. Reopening a saved DAW project without ComfyUI: the owner's test.
 - [ ] REAPER and Cubase: loaded, played, dragged, ARA applied
+  💡 REAPER 7, first finding: a new song made and dragged in; the take slowed down when the tempo map came. Fixed (phase 6), in the owner's next test.
 - [x] `tools/install.ps1`, a short test guide for the owner
   💡 `docs/TESTING.md`: REAPER and Cubase step by step, and how to give the owner's ComfyUI Plenio 1.6.0.
 
@@ -435,3 +436,4 @@ the first song.
 | 2026-11-08 | Phase 6 built: files for the DAW, drag and drop, REAPER tracks, the space bar; A6 (syllables) noted for later |
 | 2026-11-08 | Phase 7: Plenio ARA recognises takes and gives hosts their tempo, bars, key, notes and chords (ARATestHost: all tests pass); phase 8: end to end (edited notes sung, a cover, four takes with stems) and offline checked, install script and test guide |
 | 2026-11-08 | Phase 7: another take of the song in a clip, chosen in Plenio ARA's window |
+| 2026-11-08 | The owner's first REAPER test: a take dropped in before the tempo map played at 63 % of its speed (REAPER's default timebase stretched it). Plenio's audio in REAPER keeps its time, *Put on tracks* sets the tempo map first and leaves the user's items alone; tested against a fake REAPER; the tests keep apart from the owner's log; the log in local time |

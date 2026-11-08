@@ -3,10 +3,15 @@
 // take of one item: REAPER's own takes), Melody, Instrument Line, Chords (MIDI, muted), the stems; the project's
 // tempo map from the bars measured in the take. The take chosen on the Song track and in Plenio stay the same.
 //
+// The audio is the master: Plenio's audio in the project keeps its time (REAPER's timebase Time), so a tempo map
+// moves REAPER's grid onto the song and never stretches the song. REAPER's default timebase (beats: position, length,
+// rate) would: a take dropped in at the project's 120 BPM played at 63 % of its speed once the song's 76 BPM came in.
+//
 // Through IReaperHostApplication (REAPER 5.02+): REAPER's extension API, by name. Every call on the main thread.
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -58,6 +63,9 @@ struct ReaperSong
     double length = 0.0;
 };
 
+/// Whether `file` (UTF-8, as REAPER names it) is audio from Plenio's library under `root`: a take, a stem, a click.
+bool isLibraryAudio (const std::filesystem::path& root, const std::string& file);
+
 class Reaper
 {
 public:
@@ -65,8 +73,14 @@ public:
     static std::unique_ptr<Reaper> connect (Steinberg::FUnknown* hostContext);
     ~Reaper();
 
-    /// Puts the song on tracks below the instrument's track, or brings its tracks up to date. One undo step.
+    /// Puts the song on tracks below the instrument's track, or brings its tracks up to date (the items Plenio put
+    /// there make way; what else is on the tracks stays). The tempo map comes first, then the items. One undo step.
     bool place (const ReaperSong& song, std::string& problem);
+    /// Any item in the project whose audio `isPlenio` (its file, UTF-8; for media REAPER copied into the project's
+    /// folder, the file it came from) gets the timebase Time, once: marked, so a timebase chosen later stays. No
+    /// undo step of its own (one would stand between the user and undoing the drop). Looks only when the project
+    /// changed; returns how many items it set.
+    int keepInTime (const std::function<bool (const std::string& file)>& isPlenio);
     /// Whether the song's tracks are in the project.
     bool placed (const std::string& songId) const;
     /// The take chosen on the Song track, by its number.
@@ -82,6 +96,8 @@ private:
     struct Api;
     explicit Reaper (std::unique_ptr<Api> api);
     std::unique_ptr<Api> api;
+    void* lookedAt = nullptr; // the project keepInTime looked at last, and its state then
+    int lookedAtState = 0;
 };
 
 } // namespace plenio::plugin

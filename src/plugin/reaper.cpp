@@ -16,6 +16,7 @@ DEF_CLASS_IID (IReaperHostApplication)
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <map>
 
 // REAPER's own types: only ever pointers
@@ -65,6 +66,13 @@ struct Reaper::Api
     void (*PreventUIRefresh) (int) = nullptr;
     void (*Main_OnCommand) (int, int) = nullptr;
     void (*UpdateItemInProject) (MediaItem*) = nullptr;
+    int (*CountMediaItems) (ReaProject*) = nullptr;
+    MediaItem* (*GetMediaItem) (ReaProject*, int) = nullptr;
+    PCM_source* (*GetMediaItemTake_Source) (MediaItem_Take*) = nullptr;
+    void (*GetMediaSourceFileName) (PCM_source*, char*, int) = nullptr;
+    PCM_source* (*GetMediaSourceParent) (PCM_source*) = nullptr;
+    bool (*TakeIsMIDI) (MediaItem_Take*) = nullptr;
+    int (*GetProjectStateChangeCount) (ReaProject*) = nullptr;
 
     template <typename F>
     bool get (F& f, const char* name)
@@ -111,6 +119,13 @@ struct Reaper::Api
         ok &= get (PreventUIRefresh, "PreventUIRefresh");
         ok &= get (Main_OnCommand, "Main_OnCommand");
         ok &= get (UpdateItemInProject, "UpdateItemInProject");
+        ok &= get (CountMediaItems, "CountMediaItems");
+        ok &= get (GetMediaItem, "GetMediaItem");
+        ok &= get (GetMediaItemTake_Source, "GetMediaItemTake_Source");
+        ok &= get (GetMediaSourceFileName, "GetMediaSourceFileName");
+        ok &= get (GetMediaSourceParent, "GetMediaSourceParent");
+        ok &= get (TakeIsMIDI, "TakeIsMIDI");
+        ok &= get (GetProjectStateChangeCount, "GetProjectStateChangeCount");
         return ok;
     }
 
@@ -146,22 +161,66 @@ struct Reaper::Api
         }
         return out;
     }
+    // --- items: those Plenio puts on the song's tracks are marked with P_EXT:plenio_item = "<song id>" ---
+
+    std::string itemText (MediaItem* item, const char* key) const
+    {
+        std::array<char, 4096> buffer {};
+        if (item == nullptr || ! GetSetMediaItemInfo_String (item, key, buffer.data(), false))
+            return {};
+        return std::string (buffer.data());
+    }
+    void setItemText (MediaItem* item, const char* key, const std::string& text) const
+    {
+        std::vector<char> buffer (text.begin(), text.end());
+        buffer.push_back (0);
+        GetSetMediaItemInfo_String (item, key, buffer.data(), true);
+    }
+    /// Takes away the items Plenio put on the track; what the user put there stays.
     void clearItems (MediaTrack* t) const
     {
         for (int i = CountTrackMediaItems (t) - 1; i >= 0; --i)
-            DeleteTrackMediaItem (t, GetTrackMediaItem (t, i));
+            if (auto* item = GetTrackMediaItem (t, i); ! itemText (item, "P_EXT:plenio_item").empty())
+                DeleteTrackMediaItem (t, item);
     }
-    MediaItem* audioItem (MediaTrack* t, const std::filesystem::path& file, double length, const std::string& name) const
+    /// A new item of the song from the project's start, marked as Plenio's.
+    MediaItem* newItem (MediaTrack* t, const std::string& songId, double position, double length) const
     {
         auto* item = AddMediaItemToTrack (t);
+        SetMediaItemInfo_Value (item, "D_POSITION", position);
+        SetMediaItemInfo_Value (item, "D_LENGTH", length);
+        setItemText (item, "P_EXT:plenio_item", songId);
+        return item;
+    }
+    /// An item playing a file (audio or MIDI) from the project's start.
+    MediaItem* fileItem (MediaTrack* t, const std::string& songId, const std::filesystem::path& file, double length, const std::string& name) const
+    {
+        auto* item = newItem (t, songId, 0.0, length);
         auto* take = AddTakeToMediaItem (item);
-        auto* source = PCM_Source_CreateFromFile (paths::toUtf8 (file).c_str());
-        if (source != nullptr)
+        if (auto* source = PCM_Source_CreateFromFile (paths::toUtf8 (file).c_str()))
             SetMediaItemTake_Source (take, source);
         setTakeText (take, "P_NAME", name);
-        SetMediaItemInfo_Value (item, "D_POSITION", 0.0);
-        SetMediaItemInfo_Value (item, "D_LENGTH", length);
         return item;
+    }
+    /// The item keeps its time when the tempo changes (timebase Time), marked: Plenio does it once.
+    void keepInTime (MediaItem* item) const
+    {
+        SetMediaItemInfo_Value (item, "C_BEATATTACHMODE", 0.0);
+        setItemText (item, "P_EXT:plenio_time", "1");
+    }
+    /// The file a take plays: its source's, or for a section or a reversed take, the file of the source it wraps.
+    std::string sourceFile (MediaItem_Take* take) const
+    {
+        auto* source = take != nullptr ? GetMediaItemTake_Source (take) : nullptr;
+        for (int depth = 0; source != nullptr && depth < 8; ++depth)
+        {
+            std::array<char, 4096> buffer {};
+            GetMediaSourceFileName (source, buffer.data(), static_cast<int> (buffer.size()));
+            if (buffer[0] != 0)
+                return std::string (buffer.data());
+            source = GetMediaSourceParent (source);
+        }
+        return {};
     }
     void setTakeText (MediaItem_Take* take, const char* key, const std::string& text) const
     {
@@ -171,7 +230,7 @@ struct Reaper::Api
     }
     std::string takeText (MediaItem_Take* take, const char* key) const
     {
-        std::array<char, 256> buffer {};
+        std::array<char, 4096> buffer {};
         if (take == nullptr || ! GetSetMediaItemTakeInfo_String (take, key, buffer.data(), false))
             return {};
         return std::string (buffer.data());
@@ -180,9 +239,12 @@ struct Reaper::Api
     {
         auto tracks = songTracks (songId);
         auto it = tracks.find ("song");
-        if (it == tracks.end() || CountTrackMediaItems (it->second) == 0)
+        if (it == tracks.end())
             return nullptr;
-        return GetTrackMediaItem (it->second, 0);
+        for (int i = 0, n = CountTrackMediaItems (it->second); i < n; ++i)
+            if (auto* item = GetTrackMediaItem (it->second, i); itemText (item, "P_EXT:plenio_item") == songId)
+                return item;
+        return nullptr;
     }
 };
 
@@ -193,6 +255,29 @@ int color (int r, int g, int b)
     return (r | (g << 8) | (b << 16)) | 0x1000000; // Windows' COLORREF with REAPER's "custom colour" bit
 }
 } // namespace
+
+bool isLibraryAudio (const std::filesystem::path& root, const std::string& file)
+{
+    // Windows' paths: either slash, any case
+    auto folded = [] (std::string s)
+    {
+        for (auto& c : s)
+            c = c == '\\' ? '/' : static_cast<char> (std::tolower (static_cast<unsigned char> (c)));
+        while (! s.empty() && s.back() == '/')
+            s.pop_back();
+        return s;
+    };
+    const auto folder = folded (paths::toUtf8 (root));
+    const auto path = folded (file);
+    if (folder.empty() || path.size() <= folder.size() + 1 || path.compare (0, folder.size(), folder) != 0 || path[folder.size()] != '/')
+        return false;
+    static const char* audio[] = { ".wav", ".flac", ".mp3", ".ogg", ".opus", ".aif", ".aiff", ".w64" };
+    const auto dot = path.find_last_of ('.');
+    if (dot == std::string::npos || path.find ('/', dot) != std::string::npos)
+        return false;
+    const auto extension = path.substr (dot);
+    return std::any_of (std::begin (audio), std::end (audio), [&] (const char* e) { return extension == e; });
+}
 
 std::unique_ptr<Reaper> Reaper::connect (Steinberg::FUnknown* hostContext)
 {
@@ -291,15 +376,40 @@ bool Reaper::place (const ReaperSong& song, std::string& problem)
     a.SetMediaTrackInfo_Value (ordered.back(), "I_FOLDERDEPTH", -1.0);
     a.SetMediaTrackInfo_Value (tracks["folder"], "I_CUSTOMCOLOR", color (176, 92, 255));
 
-    // Song: one item, every take of the song as one of REAPER's takes
+    // what Plenio put on the song's tracks before makes way (on all of them: the track of a stem the take lacks
+    // falls silent), and the regions it made
+    for (const auto& [key, t] : tracks)
+        a.clearItems (t);
+    auto* folder = tracks["folder"];
+    auto old = a.trackText (folder, "P_EXT:plenio_regions");
+    for (std::size_t at = 0; at < old.size();)
+    {
+        auto comma = old.find (',', at);
+        auto number = old.substr (at, comma == std::string::npos ? std::string::npos : comma - at);
+        if (! number.empty())
+            a.DeleteProjectMarker (project, std::atoi (number.c_str()), true);
+        if (comma == std::string::npos)
+            break;
+        at = comma + 1;
+    }
+
+    // the project's tempo map, the take's bars: before the items and regions, which a change of tempo moves or
+    // stretches (REAPER's default timebase follows the beats)
+    if (! song.tempo.empty())
+    {
+        for (int i = a.CountTempoTimeSigMarkers (project) - 1; i >= 0; --i)
+            a.DeleteTempoTimeSigMarker (project, i);
+        for (const auto& t : song.tempo)
+            a.SetTempoTimeSigMarker (project, -1, t.seconds, -1, -1.0, t.bpm, t.meter ? t.numerator : 0, t.meter ? t.denominator : 0, false);
+    }
+
+    // Song: one item, every take of the song as one of REAPER's takes. In time, as all of the song's audio.
     auto* songTrack = tracks["song"];
-    a.clearItems (songTrack);
     double longest = 0.0;
     for (const auto& t : song.takes)
         longest = std::max (longest, t.length);
-    auto* item = a.AddMediaItemToTrack (songTrack);
-    a.SetMediaItemInfo_Value (item, "D_POSITION", 0.0);
-    a.SetMediaItemInfo_Value (item, "D_LENGTH", std::max (longest, song.length));
+    auto* item = a.newItem (songTrack, song.id, 0.0, std::max (longest, song.length));
+    a.keepInTime (item);
     MediaItem_Take* chosen = nullptr;
     for (const auto& t : song.takes)
     {
@@ -316,48 +426,33 @@ bool Reaper::place (const ReaperSong& song, std::string& problem)
     a.UpdateItemInProject (item);
     a.SetMediaTrackInfo_Value (songTrack, "B_MUTE", song.stems.empty() ? 0.0 : 1.0); // the stems are the song, as in the add-in
 
-    // the stems of the chosen take; the score's parts, muted (an instrument on them makes them heard)
+    // the stems of the chosen take, in time; the score's parts, muted (an instrument on them makes them heard). The
+    // MIDI keeps REAPER's timebase: its notes sit on the beats of the tempo map, as in the file.
     for (const auto& [name, file] : song.stems)
     {
         auto* t = tracks[name];
-        a.clearItems (t);
-        a.audioItem (t, file, song.length, name);
+        a.keepInTime (a.fileItem (t, song.id, file, song.length, name));
         a.SetMediaTrackInfo_Value (t, "B_MUTE", 0.0);
     }
     for (const auto& [name, file] : song.parts)
     {
         auto* t = tracks[name == "Melody" ? "melody" : name == "Chords" ? "chords" : "instrument"];
-        a.clearItems (t);
-        a.audioItem (t, file, song.length, name);
+        a.fileItem (t, song.id, file, song.length, name);
         a.SetMediaTrackInfo_Value (t, "B_MUTE", 1.0);
     }
 
-    // Lyrics: an empty item per sung line, its text as the item's notes
+    // Lyrics: an empty item per sung line, its text as the item's notes; in time with the audio
     auto* lyrics = tracks["lyrics"];
-    a.clearItems (lyrics);
     for (const auto& l : song.lines)
     {
-        auto* line = a.AddMediaItemToTrack (lyrics);
-        a.SetMediaItemInfo_Value (line, "D_POSITION", l.start);
-        a.SetMediaItemInfo_Value (line, "D_LENGTH", std::max (0.1, l.end - l.start));
+        auto* line = a.newItem (lyrics, song.id, l.start, std::max (0.1, l.end - l.start));
+        a.SetMediaItemInfo_Value (line, "C_BEATATTACHMODE", 0.0);
         std::vector<char> text (l.text.begin(), l.text.end());
         text.push_back (0);
         a.GetSetMediaItemInfo_String (line, "P_NOTES", text.data(), true);
     }
 
-    // the sections as regions (those Plenio made before go first)
-    auto* folder = tracks["folder"];
-    auto old = a.trackText (folder, "P_EXT:plenio_regions");
-    for (std::size_t at = 0; at < old.size();)
-    {
-        auto comma = old.find (',', at);
-        auto number = old.substr (at, comma == std::string::npos ? std::string::npos : comma - at);
-        if (! number.empty())
-            a.DeleteProjectMarker (project, std::atoi (number.c_str()), true);
-        if (comma == std::string::npos)
-            break;
-        at = comma + 1;
-    }
+    // the sections as regions
     std::string made;
     static const int colours[][3] = { { 255, 90, 160 }, { 160, 92, 255 }, { 92, 141, 255 }, { 47, 195, 168 }, { 255, 178, 62 }, { 255, 122, 89 } };
     for (std::size_t i = 0; i < song.sections.size(); ++i)
@@ -369,15 +464,6 @@ bool Reaper::place (const ReaperSong& song, std::string& problem)
             made += (made.empty() ? "" : ",") + std::to_string (index);
     }
     a.setTrackText (folder, "P_EXT:plenio_regions", made);
-
-    // the project's tempo map: the take's bars
-    if (! song.tempo.empty())
-    {
-        for (int i = a.CountTempoTimeSigMarkers (project) - 1; i >= 0; --i)
-            a.DeleteTempoTimeSigMarker (project, i);
-        for (const auto& t : song.tempo)
-            a.SetTempoTimeSigMarker (project, -1, t.seconds, -1, -1.0, t.bpm, t.meter ? t.numerator : 0, t.meter ? t.denominator : 0, false);
-    }
 
     a.PreventUIRefresh (-1);
     a.TrackList_AdjustWindows (false);
@@ -392,6 +478,44 @@ bool Reaper::place (const ReaperSong& song, std::string& problem)
 bool Reaper::placed (const std::string& songId) const
 {
     return api->songItem (songId) != nullptr;
+}
+
+int Reaper::keepInTime (const std::function<bool (const std::string&)>& isPlenio)
+{
+    auto& a = *api;
+    auto* project = a.project();
+    const int state = a.GetProjectStateChangeCount (project);
+    if (project == lookedAt && state == lookedAtState)
+        return 0;
+    lookedAt = project;
+    lookedAtState = state;
+    int made = 0;
+    for (int i = 0, n = a.CountMediaItems (project); i < n; ++i)
+    {
+        auto* item = a.GetMediaItem (project, i);
+        if (item == nullptr || ! a.itemText (item, "P_EXT:plenio_time").empty())
+            continue;
+        bool plenio = false;
+        for (int k = 0, takes = a.GetMediaItemNumTakes (item); k < takes && ! plenio; ++k)
+        {
+            auto* take = a.GetMediaItemTake (item, k);
+            if (take == nullptr || a.TakeIsMIDI (take))
+                continue; // MIDI sits on the beats
+            auto original = a.takeText (take, "P_EXT:ORIGINAL_FILENAME"); // media REAPER copied into the project's folder
+            plenio = (! original.empty() && isPlenio (original)) || isPlenio (a.sourceFile (take));
+        }
+        if (plenio)
+        {
+            a.keepInTime (item);
+            ++made;
+        }
+    }
+    if (made > 0)
+    {
+        a.UpdateArrange();
+        lookedAtState = a.GetProjectStateChangeCount (project); // its own change is no reason to look again
+    }
+    return made;
 }
 
 std::optional<int> Reaper::chosenTake (const std::string& songId) const

@@ -155,6 +155,7 @@ void SongController::tick()
     if (reaper && ++reaperTicks >= 12)
     {
         reaperTicks = 0;
+        keepAudioInTime();
         followReaper();
     }
     if (! sink || hostRate <= 0)
@@ -301,6 +302,14 @@ void SongController::followReaper()
                 session->selectTake (static_cast<int> (i));
                 break;
             }
+}
+
+void SongController::keepAudioInTime()
+{
+    const auto root = studio->library().root();
+    if (int made = reaper->keepInTime ([&root] (const std::string& file) { return isLibraryAudio (root, file); }); made > 0)
+        log::info ("REAPER: Plenio's audio keeps its time in {} item{} (timebase Time): a tempo map moves REAPER's grid onto the song, not the audio",
+                   made, made == 1 ? "" : "s");
 }
 
 void SongController::tell (const std::string& text, bool problem)

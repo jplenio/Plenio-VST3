@@ -36,12 +36,14 @@ TEST_CASE ("UTF-8 paths survive the round trip")
 TEST_CASE ("PLENIO_VST3_HOME keeps settings, cache and songs apart")
 {
 #ifdef _WIN32
+    const wchar_t* before = _wgetenv (L"PLENIO_VST3_HOME");
+    const std::wstring previous = before != nullptr ? before : L""; // the tests' own home (tests/main.cpp)
     auto dev = std::filesystem::temp_directory_path() / "plenio-vst3-home-test";
     _wputenv_s (L"PLENIO_VST3_HOME", dev.wstring().c_str());
     CHECK (paths::appData() == dev / "config");
     CHECK (paths::localData() == dev / "cache");
     CHECK (paths::defaultLibrary() == dev / "Songs");
-    _wputenv_s (L"PLENIO_VST3_HOME", L"");
+    _wputenv_s (L"PLENIO_VST3_HOME", previous.c_str());
     CHECK (paths::appData() != dev / "config");
 #endif
 }

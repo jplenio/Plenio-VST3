@@ -3,7 +3,9 @@
 
 #include <chrono>
 #include <cstdio>
+#include <ctime>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <mutex>
 
@@ -63,8 +65,19 @@ void write (Level level, std::string_view message) noexcept
         if (! out)
             return;
 
-        auto now = std::chrono::floor<std::chrono::milliseconds> (std::chrono::system_clock::now());
-        out << std::format ("{:%Y-%m-%d %H:%M:%S} {} ", now, name (level)) << message << "\n";
+        // the local time, as the one who reads the log lived it
+        const auto now = std::chrono::system_clock::now();
+        const auto seconds = std::chrono::system_clock::to_time_t (now);
+        std::tm local {};
+#ifdef _WIN32
+        localtime_s (&local, &seconds);
+#else
+        localtime_r (&seconds, &local);
+#endif
+        const auto millis = std::chrono::duration_cast<std::chrono::milliseconds> (now.time_since_epoch()).count() % 1000;
+        out << std::format ("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} {} ", local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
+                            local.tm_hour, local.tm_min, local.tm_sec, millis, name (level))
+            << message << "\n";
     }
     catch (...)
     {

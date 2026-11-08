@@ -45,7 +45,9 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
    - REAPER's bar lines fall on the song's bars (the click of the DAW tab helps hearing it);
    - choose another take on the Song track (its take lane, or the *T* key): Plenio follows, and the stems, MIDI, lyrics
      and tempo map follow the take; choose one in Plenio: REAPER follows;
-   - the instrument is quiet while REAPER plays the tracks (it still plays when you listen inside Plenio).
+   - the instrument is quiet while REAPER plays the tracks (it still plays when you listen inside Plenio);
+   - the song keeps its speed: its audio items have the timebase *Time* (item properties), so the tempo map moves
+     REAPER's grid and not the song; what you put on Plenio's tracks yourself stays when they follow another take.
 5. **Change the song**:
    - *Words* tab: change a line of the lyrics. *Generate* now says *compose new notes for the words, then render*.
    - the piano roll (double-click: a note; drag: move; its edge: length; Del; arrow keys: transpose), and a chord
@@ -53,7 +55,11 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
    - *Brief* tab: change the brief: the song is written anew.
    Each run lands as new takes on the same track, also when the new take is longer or shorter.
 6. **Drag and drop** (DAW tab, or the grip on a take lane): drag *Take*, *Stems*, *MIDI*, *Tempo map* or *Click* onto
-   REAPER's timeline at bar 1. Every file starts at the project's start.
+   REAPER's timeline at bar 1. Every file starts at the project's start. Drop the *Take* first, then the *Tempo map*
+   (REAPER asks whether to import its tempo: yes): the take keeps its speed and REAPER's grid moves onto the song's
+   bars. REAPER on its own would stretch the take to the new tempo; within half a second of the drop Plenio gives its
+   audio in the project the timebase *Time* (the item's properties show it, the log says
+   `REAPER: Plenio's audio keeps its time in 1 item`).
 7. **Without ComfyUI**: save the project, quit REAPER, quit ComfyUI, open the project again. The song, its takes and
    your edits are there; playing, editing, dragging and *Put on tracks* work; *Generate* asks for ComfyUI.
 

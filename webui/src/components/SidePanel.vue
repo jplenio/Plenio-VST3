@@ -306,10 +306,13 @@ function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
           </div>
           <details class="howto">
             <summary>The tempo map in your DAW</summary>
-            <p><b>REAPER:</b> drop the tempo map at bar 1 and choose to import its tempo.</p>
+            <p>
+              <b>REAPER:</b> drop the tempo map at bar 1 and choose to import its tempo. Plenio keeps its audio in the
+              project in time: REAPER’s grid moves onto the song, the song keeps its speed.
+            </p>
             <p><b>Cubase:</b> File › Import › MIDI File… (or drop it) with the tempo track imported.</p>
             <p><b>Studio One, Bitwig, Logic:</b> dropping the MIDI file offers its tempo.</p>
-            <p><b>Ableton Live, FL Studio:</b> set the tempo to {{ tempoText }}; the click shows where the bars fall.</p>
+            <p><b>Ableton Live, FL Studio:</b> set the tempo to {{ tempoText }}; the click shows where the bars fall. In Live, Warp off on the audio.</p>
           </details>
           <button class="btn small ghost reveal" :disabled="dawState !== 'ready'" @click="call('daw.reveal', { index: active.index })">
             <Icon name="folder" :size="13" />Show the files

@@ -68,6 +68,8 @@ private:
     bool placedInReaper() const;
     /// Every half second: the take chosen on REAPER's Song track, and tracks to bring up to date.
     void followReaper();
+    /// Every half second: Plenio's audio dropped into REAPER's project keeps its time (a tempo map would stretch it).
+    void keepAudioInTime();
     Json dawView (int number) const;
 
     engine::Player& player;
