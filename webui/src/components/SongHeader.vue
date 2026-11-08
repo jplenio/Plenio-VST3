@@ -7,6 +7,11 @@ import Icon from './Icon.vue'
 
 const menu = ref(false)
 const song = computed(() => store.song!)
+// the cover art: the active take's, else the newest take's that has one (an image that fails to load stays away)
+const showCover = ref(false)
+const brokenCover = ref('')
+const cover = computed(() => (song.value.cover && song.value.cover !== brokenCover.value ? song.value.cover : ''))
+const coverTake = computed(() => song.value.takes.find((t) => t.cover === song.value.cover))
 const active = computed(() => song.value.takes[song.value.activeTake])
 const busy = computed(() => song.value.jobs.length > 0)
 
@@ -52,12 +57,24 @@ function generate(mode = 'auto'): void {
 function closeMenu(e: MouseEvent): void {
   if (!(e.target as HTMLElement).closest('.generate')) menu.value = false
 }
-onMounted(() => document.addEventListener('mousedown', closeMenu))
-onBeforeUnmount(() => document.removeEventListener('mousedown', closeMenu))
+function closeCover(e: KeyboardEvent): void {
+  if (e.key === 'Escape') showCover.value = false
+}
+onMounted(() => {
+  document.addEventListener('mousedown', closeMenu)
+  document.addEventListener('keydown', closeCover)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', closeMenu)
+  document.removeEventListener('keydown', closeCover)
+})
 </script>
 
 <template>
   <section class="header">
+    <button v-if="cover" class="cover" title="The cover art Plenio painted · click for the large view" @click="showCover = true">
+      <img :src="cover" alt="" @error="brokenCover = cover" />
+    </button>
     <div class="facts">
       <div class="line">
         <template v-if="active">
@@ -108,6 +125,20 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', closeMenu))
       </div>
       <div class="plan muted">{{ online() ? song.plan.label : 'start ComfyUI to make takes' }}</div>
     </div>
+
+    <div v-if="showCover && cover" class="overlay" @mousedown.self="showCover = false">
+      <figure class="cover-view">
+        <img :src="cover" alt="The song's cover art" />
+        <figcaption>
+          <span class="what">
+            <b>{{ song.title }}</b>
+            <span class="muted">{{ coverTake ? `Take ${coverTake.number}'s cover · ` : '' }}cover.jpg in the song's folder</span>
+          </span>
+          <button class="btn small ghost" @click="act('song.reveal')"><Icon name="folder" :size="13" />Show the folder</button>
+          <button class="btn small" @click="showCover = false">Close</button>
+        </figcaption>
+      </figure>
+    </div>
   </section>
 </template>
 
@@ -120,6 +151,64 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', closeMenu))
   padding: 12px 16px 12px;
   border-bottom: 1px solid var(--line);
   background: rgba(22, 19, 31, 0.6);
+}
+.cover {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-sunken);
+  cursor: zoom-in;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s, border-color 0.12s;
+}
+.cover:hover {
+  transform: scale(1.04);
+  border-color: var(--accent);
+}
+.cover img,
+.cover-view img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-view {
+  margin: 0;
+  width: min(560px, calc(100vw - 48px), calc(100vh - 140px));
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+  animation: rise 0.16s ease-out;
+}
+.cover-view img {
+  aspect-ratio: 1;
+  height: auto;
+}
+.cover-view figcaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.cover-view .what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cover-view .what b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cover-view .what .muted {
+  font-size: 12px;
 }
 .facts {
   flex: 1;

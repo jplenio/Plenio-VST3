@@ -4,7 +4,9 @@
 
 #include "core/json.h"
 
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -35,6 +37,13 @@ public:
     /// The editor's size the plug-in remembers (logical pixels), and what the user resized it to.
     virtual std::pair<int, int> editorSize() const = 0;
     virtual void setEditorSize (int width, int height) = 0;
+
+    /// A file the UI shows by its address (`/files/…`, such as a song's cover): where it is on disk, or nothing.
+    virtual std::optional<std::filesystem::path> file (const std::string& address) const
+    {
+        (void) address;
+        return std::nullopt;
+    }
 };
 
 } // namespace plenio::ui

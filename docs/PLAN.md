@@ -415,6 +415,8 @@ the first song.
 - [ ] REAPER and Cubase: loaded, played, dragged, ARA applied
   💡 REAPER 7, first finding: a new song made and dragged in; the take slowed down when the tempo map came. Fixed (phase 6), in the owner's next test.
 - [x] `tools/install.ps1`, a short test guide for the owner
+- [x] The owner's test: the cover art Plenio painted was nowhere to be seen
+  💡 Plenio hands it over as a JPEG of its own (the job's file with the role `cover`) and embeds it in the take's FLAC: the plug-in fetched neither. Now each take keeps its cover beside its audio (fetched with the take, or taken from its FLAC, also for songs made before), the song's folder keeps `cover.jpg` (the chosen take's, else the newest take's), the window shows it (the song's header with a large view, the take lanes, the song list; served at `/files/cover/…`), and REAPER's song folder and Song track get it as their icon. Checked in EditorHost with the owner's take (its 1024 × 1024 cover from the FLAC); a run with cover art: the owner's test. No API addition needed.
   💡 `docs/TESTING.md`: REAPER and Cubase step by step, and how to give the owner's ComfyUI Plenio 1.6.0.
 
 ### Phase 9: alpha release
@@ -437,3 +439,4 @@ the first song.
 | 2026-11-08 | Phase 7: Plenio ARA recognises takes and gives hosts their tempo, bars, key, notes and chords (ARATestHost: all tests pass); phase 8: end to end (edited notes sung, a cover, four takes with stems) and offline checked, install script and test guide |
 | 2026-11-08 | Phase 7: another take of the song in a clip, chosen in Plenio ARA's window |
 | 2026-11-08 | The owner's first REAPER test: a take dropped in before the tempo map played at 63 % of its speed (REAPER's default timebase stretched it). Plenio's audio in REAPER keeps its time, *Put on tracks* sets the tempo map first and leaves the user's items alone; tested against a fake REAPER; the tests keep apart from the owner's log; the log in local time |
+| 2026-11-09 | The owner's test: the cover art fetched and kept (`cover.jpg` in the song's folder), shown in the window, the icon of REAPER's song tracks |

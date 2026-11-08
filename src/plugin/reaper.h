@@ -61,6 +61,7 @@ struct ReaperSong
     std::vector<Span> sections;
     std::vector<Tempo> tempo;                                            // empty: the project's tempo map stays
     double length = 0.0;
+    std::filesystem::path cover; // the song's cover art: the icon of its folder and Song track (empty: none)
 };
 
 /// Whether `file` (UTF-8, as REAPER names it) is audio from Plenio's library under `root`: a take, a stem, a click.

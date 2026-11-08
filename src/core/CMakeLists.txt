@@ -18,6 +18,7 @@ add_library(plenio_core STATIC
     session.h session.cpp
     daw_export.h daw_export.cpp
     clip_content.h clip_content.cpp
+    cover_art.h cover_art.cpp
     ../platform/main_thread.h ../platform/main_thread.cpp
 )
 plenio_target_defaults(plenio_core)

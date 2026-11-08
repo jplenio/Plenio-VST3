@@ -2,8 +2,10 @@
 // carries calls (UI -> plug-in) and events (plug-in -> UI) as JSON text.
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace plenio::ui
@@ -14,9 +16,11 @@ class WebViewPanel
 public:
     /// A call from the UI: the request's JSON text in, the answer's JSON text out.
     using CallHandler = std::function<std::string (const std::string& request)>;
+    /// A file the page shows from disk (`/files/…`): its path, or nothing.
+    using FileHandler = std::function<std::optional<std::filesystem::path> (const std::string& address)>;
 
     /// `parent`: the host's native window (HWND on Windows). Sizes in physical pixels.
-    WebViewPanel (void* parent, int width, int height, CallHandler onCall);
+    WebViewPanel (void* parent, int width, int height, CallHandler onCall, FileHandler onFile = {});
     ~WebViewPanel();
 
     WebViewPanel (const WebViewPanel&) = delete;

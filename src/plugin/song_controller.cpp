@@ -1,6 +1,7 @@
 #include "plugin/song_controller.h"
 #include "core/audio_file.h"
 #include "core/clip_content.h"
+#include "core/cover_art.h"
 #include "core/library.h"
 #include "core/log.h"
 #include "core/paths.h"
@@ -12,7 +13,10 @@
 #include "plenio_version.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstdlib>
+#include <filesystem>
 
 namespace plenio::plugin
 {
@@ -260,6 +264,8 @@ void SongController::placeInReaper (bool tempo)
     if (tempo)
         for (const auto& e : timeline::tempoMap (timing, layout, daw::ppq))
             rs.tempo.push_back ({ e.seconds, e.bpm, e.meter.first, e.meter.second, e.meterChanges || e.tick == 0 });
+    if (auto cover = file (coverAddress (-1)))
+        rs.cover = *cover;
 
     std::string problem;
     if (! reaper->place (rs, problem))
@@ -310,6 +316,58 @@ void SongController::keepAudioInTime()
     if (int made = reaper->keepInTime ([&root] (const std::string& file) { return isLibraryAudio (root, file); }); made > 0)
         log::info ("REAPER: Plenio's audio keeps its time in {} item{} (timebase Time): a tempo map moves REAPER's grid onto the song, not the audio",
                    made, made == 1 ? "" : "s");
+}
+
+std::string SongController::coverAddress (int index) const
+{
+    if (! session->hasSong())
+        return {};
+    const auto& s = session->current();
+    if (index < 0)
+        index = core::coverTake (s);
+    if (index < 0 || index >= static_cast<int> (s.takes.size()))
+        return {};
+    const auto& take = s.takes[static_cast<std::size_t> (index)];
+    if (auto it = take.files.find ("cover_art"); it == take.files.end() || it->second.empty())
+        return {};
+    return "/files/cover/" + s.id + "/" + std::to_string (take.number); // a take's cover never changes
+}
+
+std::optional<std::filesystem::path> SongController::file (const std::string& address) const
+{
+    // /files/cover/<song id>/<take number>, /files/cover/<song id>/song
+    static const std::string prefix = "/files/cover/";
+    if (address.rfind (prefix, 0) != 0)
+        return std::nullopt;
+    const auto rest = address.substr (prefix.size(), address.find_first_of ("?#") - prefix.size());
+    const auto slash = rest.find ('/');
+    if (slash == std::string::npos)
+        return std::nullopt;
+    const auto id = rest.substr (0, slash);
+    const auto which = rest.substr (slash + 1);
+    auto allOf = [] (const std::string& s, auto fits) { return ! s.empty() && s.size() <= 64 && std::all_of (s.begin(), s.end(), fits); };
+    if (! allOf (id, [] (unsigned char c) { return std::isalnum (c) != 0 || c == '-' || c == '_'; }))
+        return std::nullopt;
+
+    std::error_code ec;
+    const auto library = studio->library();
+    if (which == "song")
+    {
+        auto folder = library.find (id);
+        if (! folder)
+            return std::nullopt;
+        auto cover = *folder / core::songCoverName;
+        return std::filesystem::exists (cover, ec) ? std::optional<std::filesystem::path> (cover) : std::nullopt;
+    }
+    if (! allOf (which, [] (unsigned char c) { return std::isdigit (c) != 0; }) || ! session->hasSong() || session->current().id != id)
+        return std::nullopt;
+    const int number = std::atoi (which.c_str());
+    for (const auto& take : session->current().takes)
+        if (take.number == number)
+            if (auto it = take.files.find ("cover_art"); it != take.files.end() && ! it->second.empty())
+                if (auto path = library.resolve (session->current(), it->second); std::filesystem::exists (path, ec))
+                    return path;
+    return std::nullopt;
 }
 
 void SongController::tell (const std::string& text, bool problem)
@@ -600,6 +658,8 @@ Json SongController::songView() const
     v["loading"] = loading;
     v["loadProblem"] = loadProblem;
     v["folder"] = paths::toUtf8 (session->songFolder());
+    if (auto cover = coverAddress (-1); ! cover.empty())
+        v["cover"] = cover;
 
     Json takes = Json::array();
     for (std::size_t i = 0; i < s.takes.size(); ++i)
@@ -614,6 +674,8 @@ Json SongController::songView() const
                       { "audioAt", timeline::layOut (t.timing()).audioAt }, { "daw", dawState (t.number) } };
         if (t.stars)
             item["stars"] = *t.stars;
+        if (auto cover = coverAddress (static_cast<int> (i)); ! cover.empty())
+            item["cover"] = cover;
         takes.push_back (item);
     }
     v["takes"] = takes;
@@ -764,6 +826,9 @@ Json SongController::call (const std::string& method, const Json& params)
             Json item = { { "id", s.id }, { "title", s.title }, { "kind", s.kind }, { "takes", s.takes }, { "modified", s.modified } };
             if (s.bestStars)
                 item["stars"] = *s.bestStars;
+            std::error_code ec;
+            if (auto when = std::filesystem::last_write_time (s.folder / core::songCoverName, ec); ! ec)
+                item["cover"] = "/files/cover/" + s.id + "/song?v=" + std::to_string (when.time_since_epoch().count());
             list.push_back (item);
         }
         return list;

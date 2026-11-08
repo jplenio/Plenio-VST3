@@ -99,6 +99,9 @@ private:
     void runFinished (const std::string& group, const std::string& problem);
     void resumeJobs();
     void tell (const std::string& text, bool problem = false);
+    /// The song's cover: cover.jpg in its folder follows the take the song shows; with `findOlder`, the covers of
+    /// takes fetched before the plug-in kept them are taken from their FLAC first.
+    void updateCover (bool findOlder = false);
 
     std::shared_ptr<Studio> studioRef;
     std::shared_ptr<Shared> shared;

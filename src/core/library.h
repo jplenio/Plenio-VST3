@@ -59,6 +59,12 @@ public:
     /// A file of a song given relative to its folder, made absolute (or found again when it moved).
     std::filesystem::path resolve (const Song& song, std::string_view relative) const;
 
+    /// The covers of takes fetched before the plug-in kept them apart: taken from the take's FLAC (Plenio embeds
+    /// its cover there) into the take's folder. True when a take got its cover (the song is to be saved).
+    bool findCovers (Song& song) const;
+    /// The song's cover as cover.jpg in its folder (the take `coverTake` names), written when it is another one.
+    void writeCover (const Song& song) const;
+
 private:
     std::filesystem::path rootFolder;
 };

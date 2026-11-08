@@ -1,8 +1,10 @@
 #include "core/library.h"
+#include "core/cover_art.h"
 #include "core/log.h"
 #include "core/paths.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <sstream>
 
@@ -181,6 +183,56 @@ fs::path Library::resolve (const Song& song, std::string_view relative) const
     if (auto folder = find (song.id))
         return *folder / rel;
     return folderFor (song) / rel;
+}
+
+bool Library::findCovers (Song& song) const
+{
+    bool found = false;
+    std::error_code ec;
+    for (auto& take : song.takes)
+    {
+        if (auto it = take.files.find ("cover_art"); it != take.files.end() && fs::exists (resolve (song, it->second), ec))
+            continue;
+        auto audio = take.files.find ("song");
+        if (audio == take.files.end())
+            continue;
+        const auto file = resolve (song, audio->second);
+        auto ext = file.extension().string();
+        std::transform (ext.begin(), ext.end(), ext.begin(), [] (unsigned char c) { return static_cast<char> (std::tolower (c)); });
+        if (ext != ".flac")
+            continue;
+        auto picture = embeddedPicture (file);
+        if (! picture || picture->mime != "image/jpeg")
+            continue;
+        auto cover = file;
+        cover.replace_extension (".jpg");
+        if (! writeFileAtomically (cover, picture->data))
+            continue;
+        take.files["cover_art"] = paths::toUtf8 (fs::relative (cover, folderFor (song), ec));
+        log::info ("{}: take {}'s cover taken from its FLAC", song.title, take.number);
+        found = true;
+    }
+    return found;
+}
+
+void Library::writeCover (const Song& song) const
+{
+    const int index = coverTake (song);
+    if (index < 0)
+        return;
+    const auto source = resolve (song, song.takes[static_cast<std::size_t> (index)].files.at ("cover_art"));
+    auto ext = source.extension().string();
+    std::transform (ext.begin(), ext.end(), ext.begin(), [] (unsigned char c) { return static_cast<char> (std::tolower (c)); });
+    if (ext != ".jpg" && ext != ".jpeg")
+        return;
+    auto data = readFile (source, 32u * 1024u * 1024u);
+    if (! data)
+        return;
+    const auto target = folderFor (song) / songCoverName;
+    if (auto existing = readFile (target, 32u * 1024u * 1024u); existing && *existing == *data)
+        return;
+    if (writeFileAtomically (target, *data))
+        log::info ("{}: cover.jpg is take {}'s cover", song.title, song.takes[static_cast<std::size_t> (index)].number);
 }
 
 } // namespace plenio::core

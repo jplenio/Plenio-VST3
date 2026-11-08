@@ -376,6 +376,7 @@ plenio::plugin::ReaperSong nightDrive()
     s.sections = { { 0.0, 12.6, "Intro" }, { 12.6, 40.0, "Verse" } };
     s.tempo = { { 0.0, 76.0, 4, 4, true }, { 3.158, 75.9, 4, 4, false }, { 6.32, 76.1, 4, 4, false } };
     s.length = 95.0;
+    s.cover = inLibrary ("2/Night Drive - Take 2.jpg");
     return s;
 }
 } // namespace
@@ -424,6 +425,11 @@ TEST_CASE ("Put on tracks: the tempo map first, the song's audio in time, the us
     REQUIRE (lyrics->items.size() == 2);
     CHECK (lyrics->items[0]->values["C_BEATATTACHMODE"] == 0.0);
     CHECK (lyrics->items[0]->values["D_POSITION"] == doctest::Approx (3.2));
+
+    // the cover art as the icon of the song's folder and its Song track
+    CHECK (studio.track ("s-1:folder")->text["P_ICON"] == inLibrary ("2/Night Drive - Take 2.jpg"));
+    CHECK (song->text["P_ICON"] == inLibrary ("2/Night Drive - Take 2.jpg"));
+    CHECK (studio.track ("s-1:vocals")->text["P_ICON"].empty());
 
     // the user records on the vocals' track, then chooses take 1 (another tempo map, no drums stem)
     auto* vocals = studio.track ("s-1:vocals");

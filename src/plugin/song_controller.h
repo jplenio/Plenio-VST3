@@ -41,6 +41,8 @@ public:
     void setEventSink (EventSink sink) override;
     std::pair<int, int> editorSize() const override;
     void setEditorSize (int width, int height) override;
+    /// `/files/cover/<song id>/<take number>`: the take's cover; `/files/cover/<song id>/song`: the song's cover.jpg.
+    std::optional<std::filesystem::path> file (const std::string& address) const override;
 
     // core::SongSession::Listener
     void songChanged() override;
@@ -70,6 +72,8 @@ private:
     void followReaper();
     /// Every half second: Plenio's audio dropped into REAPER's project keeps its time (a tempo map would stretch it).
     void keepAudioInTime();
+    /// The cover a take shows, as the UI asks for it (empty: none); `take` -1: the song's.
+    std::string coverAddress (int take) const;
     Json dawView (int number) const;
 
     engine::Player& player;

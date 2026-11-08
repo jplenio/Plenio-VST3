@@ -39,6 +39,8 @@ export interface TakeView {
   measured: boolean
   audioAt?: number
   daw?: '' | 'preparing' | 'ready' | 'failed'
+  /** the cover art Plenio painted for the take (its address in the plug-in) */
+  cover?: string
 }
 
 export interface DawView {
@@ -102,6 +104,8 @@ export interface SongView {
   loading: boolean
   loadProblem: string
   folder: string
+  /** the cover art the song shows: its active take's, else its newest take's */
+  cover?: string
   reaper?: { available: boolean; placed: boolean }
   takes: TakeView[]
   jobs: JobView[]
@@ -176,4 +180,5 @@ export interface LibrarySong {
   takes: number
   modified: number
   stars?: number
+  cover?: string
 }

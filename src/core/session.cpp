@@ -211,6 +211,16 @@ std::optional<Take> deliver (const PlenioClient& client, const Connection& conne
             if (fetch (f, midiFile))
                 take.files["stem_midi_" + paths::safeName (f.stem, 20)] = relative (midiFile);
         }
+        else if (f.role == "cover")
+        {
+            // the cover art Plenio painted (finish.cover_art): a JPEG beside the take's audio
+            auto coverExt = paths::fromUtf8 (f.name).extension();
+            auto coverFile = folder / paths::fromUtf8 (base + (coverExt.empty() ? std::string (".jpg") : paths::toUtf8 (coverExt)));
+            if (fetch (f, coverFile))
+                take.files["cover_art"] = relative (coverFile);
+            else
+                log::warn ("take {}: {}", number, problem); // the take is whole without its cover
+        }
     }
 
     take.documents = rec.documents;
@@ -296,6 +306,16 @@ void SongSession::tell (const std::string& text, bool problem)
         log::info ("{}", text);
     if (listen != nullptr)
         listen->tell (text, problem);
+}
+
+void SongSession::updateCover (bool findOlder)
+{
+    if (! song)
+        return;
+    auto library = studioRef->library();
+    if (findOlder && library.findCovers (*song))
+        library.save (*song);
+    library.writeCover (*song);
 }
 
 void SongSession::changed (bool save)
@@ -690,6 +710,7 @@ void SongSession::addTake (Take take, const std::string& group, int index)
     // the run is over: the folder gets the song's title (before anything reads from it again)
     if (song->jobs.empty())
         studioRef->library().tidy (*song);
+    updateCover (true); // a cover the job did not hand over as a file of its own is still in the take's FLAC
     if (adopted && listen != nullptr)
         listen->activeTakeChanged();
     tell (t.label() + " of " + song->title + " is here.");
@@ -782,6 +803,7 @@ void SongSession::selectTake (int index)
     if (! song->changes().empty())
         log::info ("take {} chosen: the working copy's changes give way to its documents", index);
     song->adopt (index);
+    updateCover();
     changed();
     if (listen != nullptr)
         listen->activeTakeChanged();
@@ -803,6 +825,7 @@ void SongSession::deleteTake (int index)
     }
     else if (song->activeTake > index)
         --song->activeTake;
+    updateCover();
     changed();
 }
 
@@ -915,6 +938,7 @@ bool SongSession::open (const std::string& id)
     }
     song = std::move (*loaded);
     editedSinceRun = false;
+    updateCover (true);
     changed (false);
     if (listen != nullptr)
         listen->activeTakeChanged();
@@ -959,6 +983,7 @@ void SongSession::restore (const Json& state)
     song->jobs.erase (std::remove_if (song->jobs.begin(), song->jobs.end(), [] (const PendingJob& j) { return j.id.empty(); }),
                       song->jobs.end());
     editedSinceRun = false;
+    updateCover (true);
     if (listen != nullptr)
     {
         listen->songChanged();

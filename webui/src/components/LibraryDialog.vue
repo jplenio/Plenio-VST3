@@ -42,7 +42,8 @@ onMounted(refreshLibrary)
         <p class="where muted"><Icon name="folder" :size="13" />{{ store.settings?.library }}</p>
         <div v-if="songs.length" class="list">
           <button v-for="s in songs" :key="s.id" class="row" :class="{ current: store.song?.id === s.id }" :disabled="!!opening" @click="open(s.id)">
-            <span class="glyph" :class="s.kind"><Icon :name="s.kind === 'cover' ? 'cover' : 'music'" :size="16" /></span>
+            <span v-if="s.cover" class="glyph art"><img :src="s.cover" alt="" /></span>
+            <span v-else class="glyph" :class="s.kind"><Icon :name="s.kind === 'cover' ? 'cover' : 'music'" :size="16" /></span>
             <span class="what">
               <b>{{ s.title || 'Untitled' }}</b>
               <span class="muted">{{ s.kind === 'cover' ? 'Cover' : 'Song' }} · {{ s.takes }} {{ s.takes === 1 ? 'take' : 'takes' }} · {{ when(s.modified) }}</span>
@@ -121,6 +122,17 @@ onMounted(refreshLibrary)
 }
 .glyph.cover {
   background: var(--gradient-warm);
+}
+/* the song's cover art */
+.glyph.art {
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.glyph.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .what {
   flex: 1;

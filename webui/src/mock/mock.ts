@@ -122,8 +122,28 @@ Racing the shadows under silver stars
 Hold on, hold on, we never look back
 Two hearts on fire on an empty track`
 
-function take(index: number, number: number, stars: number, seconds: number, stems: boolean): TakeView {
+// a demo cover art: a synthwave sun over a grid, in the hue given (the plug-in serves Plenio's own JPEG)
+function coverArt(hue: number): string {
+  const ground = `hsl(${hue - 20},60%,8%)`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue},70%,12%)"/><stop offset="1" stop-color="hsl(${hue + 40},80%,40%)"/></linearGradient>
+<linearGradient id="m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue + 80},100%,70%)"/><stop offset="1" stop-color="hsl(${hue + 20},100%,62%)"/></linearGradient></defs>
+<rect width="100" height="62" fill="url(#s)"/><circle cx="50" cy="58" r="24" fill="url(#m)"/>
+<g fill="${ground}"><rect y="45" width="100" height="1.4"/><rect y="50" width="100" height="1.8"/><rect y="54.5" width="100" height="2.2"/><rect y="59" width="100" height="2.6"/></g>
+<rect y="62" width="100" height="38" fill="${ground}"/>
+<g stroke="hsl(${hue + 40},90%,62%)" stroke-width="0.6" opacity="0.85" fill="none"><path d="M50 62L-10 100M50 62L14 100M50 62L34 100M50 62L50 100M50 62L66 100M50 62L86 100M50 62L110 100"/><path d="M0 66H100M0 71H100M0 78H100M0 88H100"/></g>
+</svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+/** The cover the song shows: the active take's, else the newest take's that has one (as the plug-in does). */
+function songCover(s: SongView): string | undefined {
+  return s.takes[s.activeTake]?.cover ?? [...s.takes].reverse().find((t) => t.cover)?.cover
+}
+
+function take(index: number, number: number, stars: number, seconds: number, stems: boolean, cover?: string): TakeView {
   return {
+    cover,
     index,
     number,
     title: 'Night Drive',
@@ -178,7 +198,8 @@ let song: SongView | null = {
   loading: false,
   loadProblem: '',
   folder: 'C:\\Users\\you\\Documents\\Plenio\\Songs\\Night Drive [s-0019a2b3c4d5]',
-  takes: [take(0, 1, 4, 91.4, false), take(1, 2, 4.5, 92.1, true), take(2, 3, 3.5, 90.8, true)],
+  cover: coverArt(296),
+  takes: [take(0, 1, 4, 91.4, false, coverArt(262)), take(1, 2, 4.5, 92.1, true, coverArt(296)), take(2, 3, 3.5, 90.8, true)],
   jobs: [],
   layout: { scoreAt, audioAt: scoreAt - 0.48, leadInBars, measured: true, seconds: 92.1, tempo: [82.6, 85.9] },
   lines: demoLines(measures),
@@ -222,8 +243,8 @@ if (initial === 'busy' && song) {
 }
 
 const LIBRARY: LibrarySong[] = [
-  { id: 's-0019a2b3c4d5', title: 'Night Drive', kind: 'song', takes: 3, modified: 1762600900, stars: 4.5 },
-  { id: 's-0019a2b3c4d6', title: 'The Unspoken Things', kind: 'song', takes: 1, modified: 1762500000, stars: 4 },
+  { id: 's-0019a2b3c4d5', title: 'Night Drive', kind: 'song', takes: 3, modified: 1762600900, stars: 4.5, cover: coverArt(296) },
+  { id: 's-0019a2b3c4d6', title: 'The Unspoken Things', kind: 'song', takes: 1, modified: 1762500000, stars: 4, cover: coverArt(196) },
   { id: 's-0019a2b3c4d7', title: 'Late Bus (jazz cover)', kind: 'cover', takes: 2, modified: 1762400000, stars: 3.5 }
 ]
 
@@ -385,13 +406,17 @@ export async function mockCall(method: string, p: Record<string, unknown>): Prom
       window.clearInterval(jobTimer)
       return song
     case 'take.select':
-      if (song) song.activeTake = Number(p.index)
+      if (song) {
+        song.activeTake = Number(p.index)
+        song.cover = songCover(song)
+      }
       return song
     case 'take.delete':
       if (song) {
         song.takes.splice(Number(p.index), 1)
         song.takes.forEach((t, i) => (t.index = i))
         song.activeTake = Math.min(song.activeTake, song.takes.length - 1)
+        song.cover = songCover(song)
       }
       return song
     case 'song.document':

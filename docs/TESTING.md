@@ -47,7 +47,8 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
      and tempo map follow the take; choose one in Plenio: REAPER follows;
    - the instrument is quiet while REAPER plays the tracks (it still plays when you listen inside Plenio);
    - the song keeps its speed: its audio items have the timebase *Time* (item properties), so the tempo map moves
-     REAPER's grid and not the song; what you put on Plenio's tracks yourself stays when they follow another take.
+     REAPER's grid and not the song; what you put on Plenio's tracks yourself stays when they follow another take;
+   - a song with cover art: the cover is the icon of the folder track and the Song track.
 5. **Change the song**:
    - *Words* tab: change a line of the lyrics. *Generate* now says *compose new notes for the words, then render*.
    - the piano roll (double-click: a note; drag: move; its edge: length; Del; arrow keys: transpose), and a chord
@@ -62,6 +63,16 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
    `REAPER: Plenio's audio keeps its time in 1 item`).
 7. **Without ComfyUI**: save the project, quit REAPER, quit ComfyUI, open the project again. The song, its takes and
    your edits are there; playing, editing, dragging and *Put on tracks* work; *Generate* asks for ComfyUI.
+
+## Cover art
+
+1. In the brief, switch *Cover art* on (*New song*, or the *Brief* tab: the switches under the form). With the take,
+   Plenio paints a cover from the song's artwork prompt.
+2. The cover shows at the top left of the song (click it: large), on the take's lane and in the song list (*Songs*).
+3. The song's folder holds it as `cover.jpg` (the cover of the chosen take, else of the newest take with one); every
+   take keeps its own beside its audio (`takes\<n>\<title> - Take <n>.jpg`).
+4. A song made before this version: its cover comes out of the take's FLAC (Plenio embeds it there) when the song
+   opens.
 
 ## In Cubase
 

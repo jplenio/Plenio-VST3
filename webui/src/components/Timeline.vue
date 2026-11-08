@@ -278,7 +278,15 @@ function closePicker(e: MouseEvent): void {
         @click="choose(t.index)"
       >
         <div class="head">
-          <button class="play" title="Listen from the take's start" @click.stop="listen(t.index)"><Icon name="play" :size="11" /></button>
+          <button
+            class="play"
+            :class="{ art: t.cover }"
+            :style="t.cover ? { backgroundImage: `url('${t.cover}')` } : undefined"
+            title="Listen from the take's start"
+            @click.stop="listen(t.index)"
+          >
+            <Icon name="play" :size="11" />
+          </button>
           <div class="take-name">
             <b>Take {{ t.number }}</b>
             <span class="muted">{{ formatTime(t.seconds) }}<template v-if="t.stars !== undefined"> · <Icon name="star" :size="10" class="star" />{{ t.stars }}</template></span>
@@ -528,6 +536,19 @@ function closePicker(e: MouseEvent): void {
 .play:hover {
   color: white;
   border-color: var(--accent);
+}
+/* a take with cover art: the cover is the button, the play sign shows on hover */
+.play.art {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+}
+.play.art:hover {
+  color: white;
+  box-shadow: inset 0 0 0 40px rgba(10, 8, 16, 0.5);
 }
 .take-name {
   display: flex;

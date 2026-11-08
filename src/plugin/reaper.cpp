@@ -375,6 +375,10 @@ bool Reaper::place (const ReaperSong& song, std::string& problem)
     a.SetMediaTrackInfo_Value (tracks["folder"], "I_FOLDERDEPTH", 1.0);
     a.SetMediaTrackInfo_Value (ordered.back(), "I_FOLDERDEPTH", -1.0);
     a.SetMediaTrackInfo_Value (tracks["folder"], "I_CUSTOMCOLOR", color (176, 92, 255));
+    // the song's cover art as the icon of its folder and its Song track (a song without one keeps what is there)
+    if (! song.cover.empty())
+        for (const char* key : { "folder", "song" })
+            a.setTrackText (tracks[key], "P_ICON", paths::toUtf8 (song.cover));
 
     // what Plenio put on the song's tracks before makes way (on all of them: the track of a stem the take lacks
     // falls silent), and the regions it made

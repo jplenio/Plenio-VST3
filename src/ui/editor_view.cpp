@@ -94,7 +94,8 @@ tresult PLUGIN_API EditorView::attached (void* parent, FIDString type)
 
     hostWindow = parent;
     panel = std::make_unique<WebViewPanel> (parent, r.getWidth(), r.getHeight(),
-                                            [this] (const std::string& request) { return handleCall (request); });
+                                            [this] (const std::string& request) { return handleCall (request); },
+                                            [this] (const std::string& address) { return backend.file (address); });
     backend.setEventSink ([this] (const std::string& name, const Json& payload)
     {
         if (panel != nullptr)

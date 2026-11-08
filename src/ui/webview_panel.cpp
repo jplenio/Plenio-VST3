@@ -60,6 +60,7 @@ std::string mimeFor (const std::filesystem::path& file)
     if (ext == ".json") return "application/json";
     if (ext == ".svg") return "image/svg+xml";
     if (ext == ".png") return "image/png";
+    if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
     if (ext == ".woff2") return "font/woff2";
     return "application/octet-stream";
 }
@@ -137,6 +138,7 @@ void registerContainerClass()
 struct WebViewPanel::Impl
 {
     CallHandler onCall;
+    FileHandler onFile;
     std::unique_ptr<choc::ui::WebView> webview;
     bool pageLoaded = false;
     std::filesystem::path devFolder;
@@ -150,6 +152,22 @@ struct WebViewPanel::Impl
         auto path = requested.substr (0, requested.find_first_of ("?#"));
         if (path.empty() || path == "/")
             path = "/index.html";
+
+        // files from disk the plug-in names (a song's cover): nothing else of the disk is reachable
+        if (path.rfind ("/files/", 0) == 0)
+        {
+            if (auto file = onFile ? onFile (path) : std::nullopt)
+            {
+                std::ifstream in (*file, std::ios::binary);
+                if (in)
+                {
+                    std::ostringstream content;
+                    content << in.rdbuf();
+                    return choc::ui::WebView::Options::Resource (content.str(), mimeFor (*file));
+                }
+            }
+            return std::nullopt;
+        }
 
         if (! devFolder.empty())
         {
@@ -172,10 +190,11 @@ struct WebViewPanel::Impl
     }
 };
 
-WebViewPanel::WebViewPanel (void* parent, int width, int height, CallHandler handler)
+WebViewPanel::WebViewPanel (void* parent, int width, int height, CallHandler handler, FileHandler files)
     : impl (std::make_unique<Impl>())
 {
     impl->onCall = std::move (handler);
+    impl->onFile = std::move (files);
     if (auto dir = environment ("PLENIO_WEBUI_DIR"); ! dir.empty())
         impl->devFolder = paths::fromUtf8 (dir);
     auto devUrl = environment ("PLENIO_WEBUI_URL");
