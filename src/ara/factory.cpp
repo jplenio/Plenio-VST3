@@ -22,8 +22,14 @@ public:
     const char* getVersion() const noexcept override { return PLENIO_VERSION_NUMBERS; }
     const char* getDocumentArchiveID() const noexcept override { return araDocumentArchiveId; }
 
-    ARA::ARASize getAnalyzeableContentTypesCount() const noexcept override { return 0; }
-    const ARA::ARAContentType* getAnalyzeableContentTypes() const noexcept override { return nullptr; }
+    // what a Plenio take holds (known, not analysed: the take's bars, score and chords)
+    ARA::ARASize getAnalyzeableContentTypesCount() const noexcept override { return contentTypes.size(); }
+    const ARA::ARAContentType* getAnalyzeableContentTypes() const noexcept override { return contentTypes.data(); }
+
+private:
+    static constexpr std::array<ARA::ARAContentType, 5> contentTypes { ARA::kARAContentTypeNotes, ARA::kARAContentTypeTempoEntries,
+                                                                       ARA::kARAContentTypeBarSignatures, ARA::kARAContentTypeKeySignatures,
+                                                                       ARA::kARAContentTypeSheetChords };
 };
 } // namespace
 

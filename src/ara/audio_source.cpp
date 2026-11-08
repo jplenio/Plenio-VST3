@@ -1,5 +1,8 @@
 #include "ara/audio_source.h"
+#include "core/library.h"
 #include "core/log.h"
+#include "core/paths.h"
+#include "core/settings.h"
 
 namespace plenio::ara
 {
@@ -43,6 +46,34 @@ void AudioSource::clearCache()
 {
     cache.clear();
     cache.shrink_to_fit();
+}
+
+const core::ClipContent* AudioSource::content() const
+{
+    if (! looked)
+    {
+        looked = true;
+        const char* name = getName();
+        const double rate = getSampleRate();
+        if (name != nullptr && rate > 0)
+        {
+            auto settings = core::loadSettings();
+            core::Library library (settings.library.empty() ? paths::defaultLibrary() : paths::fromUtf8 (settings.library));
+            if (auto match = core::matchClip (library, name, static_cast<double> (getSampleCount()) / rate))
+            {
+                clipContent = core::contentOf (*match);
+                const auto& take = match->song.takes[static_cast<std::size_t> (match->takeIndex)];
+                log::info ("ARA: '{}' is take {} of {}{}", name, take.number, match->song.title, match->stem.empty() ? "" : " (" + match->stem + ")");
+            }
+        }
+    }
+    return clipContent ? &*clipContent : nullptr;
+}
+
+void AudioSource::forgetTake() noexcept
+{
+    looked = false;
+    clipContent.reset();
 }
 
 const float* AudioSource::channel (ARA::ARAChannelCount c) const noexcept

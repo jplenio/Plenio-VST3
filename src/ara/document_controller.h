@@ -37,6 +37,18 @@ protected:
 
     bool doIsAudioModificationPreservingAudioSourceSignal (ARA::PlugIn::AudioModification*) noexcept override { return true; }
 
+    // what a clip that is a Plenio take holds: tempo, bars, the sung notes, the chords, the key
+    void didUpdateAudioSourceProperties (ARA::PlugIn::AudioSource* audioSource) noexcept override;
+    bool doIsAudioSourceContentAvailable (const ARA::PlugIn::AudioSource* audioSource, ARA::ARAContentType type) noexcept override;
+    ARA::ARAContentGrade doGetAudioSourceContentGrade (const ARA::PlugIn::AudioSource* audioSource, ARA::ARAContentType type) noexcept override;
+    ARA::PlugIn::ContentReader* doCreateAudioSourceContentReader (ARA::PlugIn::AudioSource* audioSource, ARA::ARAContentType type, const ARA::ARAContentTimeRange* range) noexcept override;
+    bool doIsAudioModificationContentAvailable (const ARA::PlugIn::AudioModification* audioModification, ARA::ARAContentType type) noexcept override;
+    ARA::ARAContentGrade doGetAudioModificationContentGrade (const ARA::PlugIn::AudioModification* audioModification, ARA::ARAContentType type) noexcept override;
+    ARA::PlugIn::ContentReader* doCreateAudioModificationContentReader (ARA::PlugIn::AudioModification* audioModification, ARA::ARAContentType type, const ARA::ARAContentTimeRange* range) noexcept override;
+    // nothing to analyse: the take's content is known (or the clip is no Plenio take)
+    bool doIsAudioSourceContentAnalysisIncomplete (const ARA::PlugIn::AudioSource*, ARA::ARAContentType) noexcept override { return false; }
+    void doRequestAudioSourceContentAnalysis (ARA::PlugIn::AudioSource*, std::vector<ARA::ARAContentType> const&) noexcept override {}
+
     ARA::PlugIn::PlaybackRenderer* doCreatePlaybackRenderer() noexcept override;
     ARA::PlugIn::EditorView* doCreateEditorView() noexcept override;
 

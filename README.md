@@ -13,13 +13,14 @@ chords and lyrics to change by hand and render again.
 | Plug-in | Type | What it does |
 |---|---|---|
 | **Plenio** | VST3 instrument | One song: new song or cover, takes (up to 4 per run), stems on extra outputs, melody, chords and lyrics to edit, played in sync with your DAW; drag takes, stems and MIDI with the song's tempo map into your project. In REAPER it puts the song on tracks itself, every take as a REAPER take. |
-| **Plenio ARA** | ARA 2 extension | On a clip in Cubase, Studio One, REAPER and other ARA hosts: knows Plenio's takes, shows their lyrics, notes and chords where they sound, hands the host tempo, bars and chords, makes covers of any clip. |
+| **Plenio ARA** | ARA 2 extension | *Coming next (a placeholder in the test version):* on a clip in Cubase, Studio One, REAPER and other ARA hosts: knows Plenio's takes, shows their lyrics, notes and chords where they sound, hands the host tempo, bars and chords, makes covers of any clip. |
 
 ## Requirements
 
 - Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime (part of Windows 11).
 - To generate: [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with [Plenio](https://github.com/jplenio/Plenio-Music-Production-System)
-  1.6 or newer and its YuE2 models. Projects you made keep working without them: playing, editing, exporting.
+  1.6 or newer and its YuE2 models (an older Plenio makes songs too, without stems). Projects you made keep working
+  without them: playing, editing, exporting.
 
 ## Building
 
@@ -29,6 +30,15 @@ pwsh tools/build.ps1          # web UI + Plenio.vst3 + tests (Visual Studio 2022
 ```
 
 The bundle is `build/VST3/Release/Plenio.vst3`.
+
+## Installing and testing
+
+```powershell
+pwsh tools/install.ps1        # into C:\Program Files\Common Files\VST3 (asks for administrator rights)
+pwsh tools/install.ps1 -Uninstall
+```
+
+What to try in REAPER and Cubase, step by step: [docs/TESTING.md](docs/TESTING.md).
 
 ## Licence
 

@@ -9,7 +9,7 @@
 | **Platforms** | Windows x64 first; the code is kept portable for macOS and Linux |
 | **Plan made** | 2026-11-08 |
 | **Last updated** | 2026-11-08 |
-| **State** | Phases 0-4 done; phase 5 (the UI) in its last steps: first songs made end to end in the plug-in on the dev ComfyUI |
+| **State** | Phases 0-4 done, 5 and 6 built (open: syllables, undo across edits, REAPER read-back); next: the test version (phase 8), then ARA |
 
 Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 
@@ -25,7 +25,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | 3 | Core: song library, Plenio client, jobs (1–4 takes a run), timeline math, MIDI, audio files | ✅ done |
 | 4 | Engine: takes and stems played in sync with the host, multi-out, MIDI out, state | ✅ done |
 | 5 | User interface: new song and cover, song view, takes, piano roll, chords, lyrics, generate | 🔄 in progress |
-| 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | ⬜ |
+| 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | 🔄 built; drag and drop and REAPER in the owner's test |
 | 7 | ARA 2: Plenio ARA on clips | ⬜ |
 | 8 | Test version for the owner: end to end, live, in REAPER and Cubase | ⬜ |
 | 9 | Alpha release on GitHub: polish, docs, package, release text | ⬜ |
@@ -156,6 +156,7 @@ drop its wrapper routes later):
 | A3 | `GET /models` | per template: ready or not, the missing model files and their sizes (the add-in's `/scp/v1/models`, for every template) |
 | A4 | `POST /stems` | stems of an existing take, as a queued job (for takes made without stems, and imported songs) |
 | A5 | version | API 1.4, Plenio 1.6.0, `docs/api/README.md`, `fields.md`, `openapi.json`, CHANGELOG, tests |
+| A6 | syllables in the score MIDI | `POST /plenio/score/midi/export` puts every sung syllable on its note (lyric events, from the ABC's `w:` lines): the piano roll shows the words under the notes, the DAW's MIDI carries them (later) |
 
 `GET /plenio/api/v1` lists the new paths, so the plug-in sees what a running Plenio offers and turns features on or
 off (an older Plenio still makes songs; the tempo map then follows the warp's straight line, stems are off).
@@ -320,6 +321,7 @@ the first song.
 - [x] A3 `GET /models`
   💡 Live it found something real on this computer: `flux2-vae` (cover art) has another size than the catalogue says, so the templates count as not ready; the plug-in will name the file and say that cover art needs it.
 - [ ] A4 `POST /stems` (queued) - later: stems now come with the take; for older takes and imported songs it is still open
+- [ ] A6 syllables in the score MIDI export - later (found while building the piano roll: the export has no lyric events)
 - [x] A5 version 1.6.0 / API 1.4, docs, OpenAPI, CHANGELOG (an "unreleased" section); Plenio's tests green
   💡 2012 passed, 1 skipped (was 1980 + 1 skipped for 1.5.1); mypy strict and ruff clean. `GET /` lists `features: ["stems", "bars", "models"]`: the plug-in turns features on by them. Commits `de099e9` and `e93f68b` on `song-api-1.4` (not pushed, not merged).
 - [x] `tools/dev_comfyui.ps1`: a dev instance of ComfyUI on its own port with the Plenio Git folder; a live job with stems and bars
@@ -383,10 +385,14 @@ the first song.
 
 ### Phase 6: DAW integration
 
-- [ ] Drag and drop to the DAW (Windows OLE): take, stems, MIDI with tempo, lyrics
-- [ ] DAW-ready files: audio padded to start at the project's start, MIDI with tempo map, sections, chords and lyrics, a click track
-- [ ] REAPER: the song on tracks (folder, takes, stems, MIDI, lyrics, regions, tempo map), take choice both ways, notes read back
-- [ ] Keys the UI does not use go to the host (space)
+- [x] Drag and drop to the DAW (Windows OLE): take, stems, MIDI with tempo, lyrics
+  💡 The shell's own data object (as Explorer drags files, which every DAW takes); a drag starts only while a mouse button is down; a tile per file in the DAW tab and a grip on every take. Tried by hand in the owner's test (it needs a real mouse).
+- [x] DAW-ready files: audio padded to start at the project's start, MIDI with tempo map, sections, chords and lyrics, a click track
+  💡 `core/daw_export` (tested): 24-bit WAV of the take and its stems with the lead-in as silence, the score as MIDI (tempo of every measure, meters, key, sections as markers, sung lines as lyrics, the chords voiced and named), one MIDI file per part, the tempo map alone, a click on every beat; in `takes/<n>/daw`, made once per take (about 3 s), the MIDI again before every drag so the latest edits go along.
+- [~] REAPER: the song on tracks (folder, takes, stems, MIDI, lyrics, regions, tempo map), take choice both ways, notes read back
+  💡 Built through `IReaperHostApplication`, as the SoundCraft add-in lays the song out: a folder, Lyrics (an item per line), Song (every take of the song as one of REAPER's takes), Melody, Instrument Line, Chords (muted), the stems; regions; the tempo map from the take's bars (optional). The take chosen on the Song track and in Plenio stay the same; the instrument is quiet while REAPER plays the tracks. Open: notes read back from REAPER's MIDI. Not tried in REAPER yet: the owner's test (an automated REAPER run cannot be kept apart from the owner's REAPER settings).
+- [x] Keys the UI does not use go to the host (space)
+  💡 REAPER: its own play/stop action; other hosts: the key posted to the host's window that holds the editor.
 
 ### Phase 7: ARA
 
@@ -419,3 +425,4 @@ the first song.
 | 2026-11-08 | Plan made after reading the SoundCraft add-in and Plenio; decisions D1–D11; the owner's added requirement (projects usable without ComfyUI and Plenio) in D5 |
 | 2026-11-08 | Phase 1 done (bundle, validator, WebView editor checked at 150 % scaling); phase 2 done: Plenio 1.6.0 with Song API 1.4 (stems, bars, models), checked live on a dev ComfyUI; D9 corrected (the stems sit behind a switch) |
 | 2026-11-08 | Phases 3 and 4 done; phase 5: the whole UI; the first song made end to end in the plug-in (EditorHost, dev ComfyUI) found the release's `sheet_music` sent as a switch (it is a choice): fixed; `PLENIO_VST3_HOME` keeps development apart from the owner's settings and songs |
+| 2026-11-08 | Phase 6 built: files for the DAW, drag and drop, REAPER tracks, the space bar; A6 (syllables) noted for later |

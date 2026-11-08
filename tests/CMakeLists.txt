@@ -7,6 +7,7 @@ add_executable(plenio_tests
     core/test_timeline.cpp
     core/test_song.cpp
     core/test_daw.cpp
+    core/test_clip_content.cpp
     engine/test_player.cpp
 )
 plenio_target_defaults(plenio_tests)

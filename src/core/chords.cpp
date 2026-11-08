@@ -90,6 +90,12 @@ std::optional<Chord> parse (std::string_view symbol)
     return chord;
 }
 
+std::vector<int> intervalsOf (std::string_view quality)
+{
+    auto it = intervals().find (std::string (quality));
+    return it == intervals().end() ? std::vector<int> {} : it->second;
+}
+
 std::vector<int> pitches (std::string_view symbol)
 {
     auto chord = parse (symbol);

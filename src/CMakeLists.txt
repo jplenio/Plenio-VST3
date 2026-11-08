@@ -30,6 +30,7 @@ set(PLENIO_PLUGIN_SOURCES
     ara/playback_renderer.cpp
     ara/audio_source.h
     ara/audio_source.cpp
+    ara/content_reader.h
     ara/factory.h
     ara/factory.cpp
     ui/backend.h

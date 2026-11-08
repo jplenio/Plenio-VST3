@@ -30,6 +30,9 @@ std::optional<Chord> parse (std::string_view symbol);
 /// (Plenio's voicing). Empty for a symbol YuE2 does not support.
 std::vector<int> pitches (std::string_view symbol);
 
+/// A quality's intervals above the root in semitones ("m7": 0 3 7 10); empty for one YuE2 does not know.
+std::vector<int> intervalsOf (std::string_view quality);
+
 /// The symbol of a chord: root name + quality (+ "/" + bass).
 std::string symbol (const Chord& chord);
 
