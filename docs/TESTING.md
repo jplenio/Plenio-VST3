@@ -25,7 +25,7 @@ end); the alpha release follows from it.
 2. `tools\install.ps1`: asks for administrator rights and copies `Plenio.vst3` into
    `C:\Program Files\Common Files\VST3`, where every host looks. (`tools\install.ps1 -Uninstall` takes it out again.)
 3. Let the DAW scan for new plug-ins. Two plug-ins appear: **Plenio** (an instrument) and **Plenio ARA** (an ARA
-   effect, a placeholder in this version).
+   extension for clips).
 
 Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\Plenio\VST3` and its log in
 `%LOCALAPPDATA%\Plenio\VST3\plenio.log`.
@@ -66,9 +66,19 @@ Plenio keeps your songs in `Documents\Plenio\Songs`, its settings in `%APPDATA%\
 4. Drag and drop as in REAPER; the tempo map: drop *Tempo map* or use *File > Import > MIDI File…* with the tempo
    track imported.
 
+## Plenio ARA (Cubase, Studio One, REAPER)
+
+1. Drag a take (*Take* tile of the DAW tab) into the project and put **Plenio ARA** on that clip (Cubase: select the
+   event, *Audio > Extensions > Plenio ARA*; REAPER: the item's FX, Plenio ARA).
+2. Plenio ARA knows the clip as a Plenio take (the log says `ARA: '<file>' is take <n> of <title>`) and hands the host
+   the take's tempo of every bar, meter, key, sung notes and chords. Hosts that read ARA content show them (Studio One:
+   chord track and tempo from the clip; Cubase and REAPER: tell me what you see).
+3. The clip plays unchanged through Plenio ARA.
+
 ## Not in this version
 
-- ARA (Plenio ARA on clips: recognising takes, tempo and chords for the host, another take in the same clip): next.
+- More ARA: another take in the same clip, the take's lyrics, notes and chords in Plenio ARA's own window, covers of
+  any clip: next.
 - The syllables under the notes (Plenio's MIDI export has no syllables yet: API addition A6), undo and redo across all
   edits (the piano roll has its own), notes edited in REAPER read back, macOS and Linux.
 
