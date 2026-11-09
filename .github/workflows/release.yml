@@ -39,7 +39,13 @@ jobs:
       - name: Unit tests
         shell: pwsh
         run: build/bin/Release/plenio_tests.exe
-      - name: Installer, zip, checksums (Inno Setup comes with the runner)
+      - name: Inno Setup (the runner's own, else from Chocolatey)
+        shell: pwsh
+        run: |
+          $iscc = @((Get-Command iscc -ErrorAction SilentlyContinue).Source, "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+                    "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if (-not $iscc) { choco install innosetup --yes --no-progress }
+      - name: Installer, zip, checksums
         shell: pwsh
         run: tools/package.ps1
       - uses: actions/upload-artifact@v4

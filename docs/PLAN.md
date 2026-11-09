@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Goal** | Plenio (YuE2 song and cover, takes, stems, editable notes, chords and lyrics) as a VST3 plug-in that runs in as many DAWs as possible, with ARA 2 for clip-level integration |
-| **Repository** | `D:\Daten2\Deepseek\ComfyUI-MiniMax\Plenio-VST3` (new, local Git, branch `main`) |
-| **Plenio** | `D:\Daten2\Deepseek\ComfyUI-MiniMax\Plenio-Music-Production-System` (1.5.1): its Song API is extended there where the plug-in needs more (branch `song-api-1.4`) |
+| **Repository** | [jplenio/Plenio-VST3](https://github.com/jplenio/Plenio-VST3) (branch `main`) |
+| **Plenio** | [Plenio-Music-Production-System](https://github.com/jplenio/Plenio-Music-Production-System), checked out next to this repository (1.5.1): its Song API is extended there where the plug-in needs more (branch `song-api-1.4`) |
 | **Reference** | The SoundCraft add-in (`soundcraft\addins\plenio`, 0.1.1-alpha): takes, stems, the bar-exact tempo map ("the audio is the master"), notes back to Plenio |
 | **Platforms** | Windows x64 first; the code is kept portable for macOS and Linux |
 | **Plan made** | 2026-11-08 |
@@ -62,7 +62,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | D7 | Plenio | **No copy of Plenio in the plug-in** (unlike the SoundCraft add-in): it talks to the user's ComfyUI with Plenio through the versioned Song API and reads its capabilities from `GET /plenio/api/v1` | A new Plenio is taken in by updating ComfyUI's custom node; new fields appear in the forms by themselves (requirement 8) |
 | D8 | Tempo | **The audio is the master** (the SoundCraft decision of 2026-11-06): the bars are measured in the take and the DAW's tempo map follows them; the audio is never stretched | A YuE2 render keeps no steady tempo (150–250 ms off a straight line in the median song) |
 | D9 | Stems | **From the job itself**: Plenio's template has the stems in its Master subgraph (Separate Stems → Stem Mixer behind a *stems* switch, off by default). API 1.4 gets a job option `stems` that turns the switch on and marks every stem *save* | Stems in the same run and queue (no second model competing for the GPU), about half a minute more per take |
-| D10 | Testing against ComfyUI | **A dev instance of ComfyUI of its own** (own `--base-directory`, Plenio's Git folder linked in, the owner's models shared), like the SoundCraft add-in | The owner's ComfyUI (`D:\Daten2\ComfyUI`, Plenio 1.5.0 as a copy) stays untouched |
+| D10 | Testing against ComfyUI | **A dev instance of ComfyUI of its own** (own `--base-directory`, Plenio's Git folder linked in, the owner's models shared), like the SoundCraft add-in | The owner's ComfyUI (Plenio 1.5.0 as a copy) stays untouched |
 | D11 | Language | Code, comments, docs, UI text and commit messages in **English**, like Plenio and the SoundCraft add-in | The owner's rule for the SoundCraft add-in (2026-11-06); talk with the owner in German |
 
 ## 3. Architecture
@@ -290,7 +290,7 @@ the first song.
 ### Phase 0: analysis and design
 
 - [x] Read the request and the added requirement (a saved project works without ComfyUI and Plenio)
-  💡 What was done: the SoundCraft add-in read end to end (plan, development guide, Rust crates, the ComfyUI wrapper with `beats.py`, `stems`), Plenio's Song API (`song_api.py`, routes, the templates and subgraphs, the MIDI export and import, the stems nodes), the tools on this computer (Visual Studio 2022 17.5 with CMake 3.25 and Ninja, Rust 1.99, Node 22, Python 3.11, REAPER 7.10, Cubase 15, two RTX 5060 Ti 16 GB) and the owner's ComfyUI (`D:\Daten2\ComfyUI`, Plenio 1.5.0 as a copy, models on `F:\ComfyUI\models`, started by `~/.plenio/player/comfyui-start.json`).
+  💡 What was done: the SoundCraft add-in read end to end (plan, development guide, Rust crates, the ComfyUI wrapper with `beats.py`, `stems`), Plenio's Song API (`song_api.py`, routes, the templates and subgraphs, the MIDI export and import, the stems nodes), the tools on this computer (Visual Studio 2022 17.5 with CMake 3.25 and Ninja, Rust 1.99, Node 22, Python 3.11, REAPER 7.10, Cubase 15, two RTX 5060 Ti 16 GB) and the owner's ComfyUI (Plenio 1.5.0 as a copy, the models on a drive of their own, started by `~/.plenio/player/comfyui-start.json`).
 - [x] Found: Plenio's template separates the stems in every run already and only does not save them (D9)
 - [x] Found: ARA hosts match the ARA factory to the effect class by name, so one bundle holds both plug-ins (D4)
 - [x] Licences checked: VST3 SDK 3.8.1 MIT, ARA SDK Apache-2.0, choc ISC, REAPER SDK zlib, JUCE 9 AGPLv3 (D1)
@@ -464,7 +464,11 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
   💡 `tools/media/make_tutorial.py`: six chapters, a camera on the plug-in's recordings and on REAPER's own steps (the session's clips, zoomed on the dialogs), a caption for every step, 2:51; the chapters for YouTube in `tutorial-chapters.txt`, a thumbnail beside it. 720p copies under 10 MB in `../plenio-vst3-launch/web/`.
 - [x] The marketing toolkit: texts for every channel (no X; Reddit with care, in the author's own voice), which picture or video goes with which post
 - [x] The release's text
-- [ ] Publishing: Plenio 1.6.0 first, then the repository, the tag `v0.1.0-alpha`, the release, YouTube, the posts: the owner's ([launch/README.md](launch/README.md), [RELEASING.md](RELEASING.md))
+- [x] YouTube: the teaser and the tutorial in the playlist *Plenio VST3* (the owner, 2026-11-09)
+  💡 Their links in the README (two thumbnails), the release's text and the announcements; the final descriptions with the tutorial's chapters (the first at 0:00, each 10 s or longer: the 4-second intro opens the first) in ANNOUNCEMENTS.md.
+- [x] Ready for GitHub: the repository's setup and the tag as scripts with their checks, Plenio 1.6.0's release commit
+  💡 `tools/release/setup_github.ps1` (the repository, the push, topics, Discussions, labels, Actions may propose pull requests), `tag_release.ps1` (version, changelog dated today, release text, pushed, then the tag); `-DryRun` for both. `release.yml` installs Inno Setup when the runner lacks it; the issue form *How it works in my DAW*. `tools/plenio.py`: the routes of Song API 1.4 are required only from a Plenio with their feature (it called 1.5.1 incompatible, and the Monday check would have opened an issue). Plenio: `c307d35` on `song-api-1.4` (the bundles rebuilt for 1.6.0, the changelog dated, README *Plenio in your DAW*), its release text in `../plenio-vst3-launch/`; ruff, mypy, 2074 unit tests, 698 frontend tests, `comfy node pack` checked.
+- [ ] Publishing: the repository, Plenio 1.6.0, the tag `v0.1.0-alpha`, the release, YouTube's descriptions, the posts: the owner's ([RELEASING.md](RELEASING.md), [launch/README.md](launch/README.md))
 
 ---
 
@@ -481,3 +485,4 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
 | 2026-11-08 | The owner's first REAPER test: a take dropped in before the tempo map played at 63 % of its speed (REAPER's default timebase stretched it). Plenio's audio in REAPER keeps its time, *Put on tracks* sets the tempo map first and leaves the user's items alone; tested against a fake REAPER; the tests keep apart from the owner's log; the log in local time |
 | 2026-11-09 | The owner's test: the cover art fetched and kept (`cover.jpg` in the song's folder), shown in the window, the icon of REAPER's song tracks |
 | 2026-11-09 | Phase 9 ready but for publishing: DAW guide in the plug-in, installers and workflows, README, tutorial, DAWS.md, release text, launch kit; the REAPER session in the owner's REAPER 7 (screenshots, clips, REAPER's routing question documented); teaser and tutorial video rendered |
+| 2026-11-09 | Ready for GitHub: the setup and tag scripts, the YouTube links, the chapters fixed for YouTube, the Plenio check fair to Plenio 1.5; Plenio 1.6.0's release commit on its branch |

@@ -13,6 +13,8 @@ What is ready, where it is, and the order to publish it in. Nothing here publish
 | The texts for every channel, and which picture goes where | [`ANNOUNCEMENTS.md`](ANNOUNCEMENTS.md) |
 | Logo, banner, social preview, screenshots, animations | [`docs/media/`](../media/) |
 | The installers and the release itself | made by GitHub Actions from the tag (`.github/workflows/release.yml`) |
+| The repository's setup and the tag, with their checks | `tools/release/setup_github.ps1`, `tools/release/tag_release.ps1` ([`RELEASING.md`](../RELEASING.md)) |
+| The issue forms: a bug, an idea, *How it works in my DAW* | `.github/ISSUE_TEMPLATE/` |
 
 ## The files
 
@@ -23,10 +25,11 @@ YuE2 song, CC BY-NC 4.0, which the repository's Apache-2.0 does not cover):
 |---|---|
 | `video/plenio-vst3-teaser.mp4` | the teaser, 1920 x 1080, 72 s, the music at -14 LUFS |
 | `video/plenio-vst3-teaser-vertical.mp4` | the teaser for Shorts, Reels and TikTok, 1080 x 1920 |
-| `video/plenio-vst3-tutorial.mp4` | the tutorial, 1920 x 1080, 2:51, with chapters (`tutorial-chapters.txt`, for YouTube's description) |
+| `video/plenio-vst3-tutorial.mp4` | the tutorial, 1920 x 1080, 2:51, with chapters (`tutorial-chapters.txt`, for YouTube's description: the first at 0:00, each 10 s or longer, else YouTube shows none) |
 | `video/teaser-poster.png`, `video/tutorial-thumbnail.png` | pictures for YouTube and the posts |
 | `web/*-720p.mp4` | 720p copies under 10 MB: for Discord and for a player in GitHub's release text |
 | `SHA256SUMS.txt` | the checksums |
+| `plenio-1.6.0-release.md` | the text of Plenio 1.6.0's GitHub release ([RELEASING.md › 2](../RELEASING.md#2-plenio-160-before-the-first-release)) |
 
 Make them again (after a new demo song or new screenshots):
 
@@ -61,20 +64,23 @@ The 720p copies: `ffmpeg -i <video> -vf scale=-2:720 -c:v libx264 -b:v 900k -pas
 
 ## Order
 
-1. **Plenio 1.6.0** first ([RELEASING.md › 0](../RELEASING.md#0-before-the-first-release-plenio-160)): the plug-in
-   recommends it.
-2. **The repository**: create it, push, settings ([RELEASING.md › 1-4](../RELEASING.md#1-create-the-github-repository-once)).
-3. **YouTube**: upload the teaser and the tutorial (titles and descriptions in
-   [ANNOUNCEMENTS.md › YouTube](ANNOUNCEMENTS.md#youtube), the tutorial's chapters from `tutorial-chapters.txt`); put
-   both in a playlist *Plenio*. Then replace the placeholders: the README (the comment under the picture), the release
-   text (*▶ Teaser and tutorial*), the YouTube descriptions (each links the other).
-4. **The release**: tag, push, look at the draft, publish ([RELEASING.md › 5-6](../RELEASING.md#5-release)). Drag
-   `web/plenio-vst3-teaser-720p.mp4` into the release text for a player in place.
+On YouTube since 2026-11-09, in the playlist [Plenio VST3](https://www.youtube.com/playlist?list=PLI7BuX18HQwM): the
+[teaser](https://youtu.be/ppJcVOqIaJg) and the [tutorial](https://youtu.be/rhNspYujXto). Their descriptions link the
+repository, so it comes first:
+
+1. **The repository**: create it, push, settings ([RELEASING.md › 1](../RELEASING.md#1-the-repository-on-github-once)).
+2. **Plenio 1.6.0** ([RELEASING.md › 2](../RELEASING.md#2-plenio-160-before-the-first-release)): the plug-in
+   recommends it, and its README now points to Plenio VST3.
+3. **The release**: tag, draft, try, publish ([RELEASING.md › 3-4](../RELEASING.md#3-the-tag)), with
+   `web/plenio-vst3-teaser-720p.mp4` dragged into the release's text for a player in place.
+4. **YouTube's descriptions**: paste the final ones from [ANNOUNCEMENTS.md › YouTube](ANNOUNCEMENTS.md#youtube): the
+   tutorial's chapters and the download link come in with them.
 5. **Posts**, one channel a day, starting on a weekday morning US time (they reward being there for the comments):
    r/comfyui, then r/Reaper, r/LocalLLaMA, r/AudioPlugins; LinkedIn, Bluesky, Mastodon, Discord and KVR in between;
    Hacker News on a weekday morning; the vertical teaser on Shorts, Instagram and TikTok. The texts:
    [ANNOUNCEMENTS.md](ANNOUNCEMENTS.md).
-6. **Afterwards**: the first issues tell which DAWs work; then the DAW subreddits, with that DAW's screenshot.
+6. **Afterwards**: the first issues (*How it works in my DAW*) tell which DAWs work; then the DAW subreddits, with that
+   DAW's screenshot.
 
 ## Licence of the launch material
 

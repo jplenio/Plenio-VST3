@@ -26,8 +26,14 @@ mixing chain, your shortcuts. No upload, no export dance, no second app to switc
 </p>
 
 > **0.1.0-alpha** · Windows · macOS experimental · [Download](https://github.com/jplenio/Plenio-VST3/releases) ·
-> [Tutorial](docs/TUTORIAL.md) · [Your DAW](docs/DAWS.md)
-> <!-- ▶ Teaser · ▶ Tutorial video: the YouTube links go here after the upload (docs/launch/README.md) -->
+> [Tutorial](docs/TUTORIAL.md) · [Your DAW](docs/DAWS.md) · ▶ [Teaser](https://youtu.be/ppJcVOqIaJg) ·
+> ▶ [Tutorial video](https://youtu.be/rhNspYujXto)
+
+<p align="center">
+  <a href="https://youtu.be/ppJcVOqIaJg"><img src="docs/media/video/teaser.jpg" alt="Watch the teaser on YouTube: Plenio is in your DAW (1:12)" width="49%"></a>
+  <a href="https://youtu.be/rhNspYujXto"><img src="docs/media/video/tutorial.jpg" alt="Watch the tutorial on YouTube: your first song in your DAW, step by step in REAPER (2:51)" width="49%"></a>
+  <br><sub>▶ <a href="https://youtu.be/ppJcVOqIaJg"><b>The teaser</b></a> (1:12) · ▶ <a href="https://youtu.be/rhNspYujXto"><b>Your first song in your DAW</b></a>, step by step (2:51) · <a href="https://www.youtube.com/playlist?list=PLI7BuX18HQwM">the playlist</a></sub>
+</p>
 
 ## What it does
 

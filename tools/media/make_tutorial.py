@@ -279,8 +279,11 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
             sys.exit("ffmpeg failed on the tutorial")
         part.replace(out)   # the finished name only for a finished video: an MP4 does not open before
         bed.unlink(missing_ok=True)
+        # YouTube shows chapters only when the first starts at 0:00 and each lasts 10 s or more: the 4-second intro
+        # opens the first chapter instead of being one
+        marks = [(0.0, chapters[0][1])] + chapters[1:]
         (out.parent / "tutorial-chapters.txt").write_text(
-            "\n".join(f"{int(t0 // 60)}:{int(t0 % 60):02d} {name}" for t0, name in [(0.0, "Intro")] + chapters), encoding="utf-8")
+            "\n".join(f"{int(t0 // 60)}:{int(t0 % 60):02d} {name}" for t0, name in marks) + "\n", encoding="utf-8")
         thumbnail(world, out.parent / "tutorial-thumbnail.png")
     print("done")
 

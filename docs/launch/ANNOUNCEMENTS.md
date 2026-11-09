@@ -1,9 +1,10 @@
 # Announcing Plenio VST3 0.1.0-alpha
 
 Texts for every channel, written in the author's voice (drafts: make them yours before posting), and which picture
-or video goes with each. Links in angle
-brackets are filled in after the upload: `<teaser>` and `<tutorial>` (YouTube), `<release>`
-(`https://github.com/jplenio/Plenio-VST3/releases/tag/v0.1.0-alpha`). The files: [launch/README.md](README.md#the-files).
+or video goes with each. The files: [launch/README.md](README.md#the-files).
+
+**The links:** the teaser https://youtu.be/ppJcVOqIaJg · the tutorial https://youtu.be/rhNspYujXto · the playlist https://www.youtube.com/playlist?list=PLI7BuX18HQwM · the release https://github.com/jplenio/Plenio-VST3/releases/tag/v0.1.0-alpha
+(it opens once the release is published; before that, link the repository).
 
 **The idea in one line:** *Generate the song. Keep working in your DAW.*
 
@@ -58,7 +59,7 @@ if the subreddit prefers.
 > It needs Plenio 1.6 (the new Song API with stems and bars), runs on 16 GB, Windows now, macOS experimental. Free,
 > Apache-2.0. YuE2 is CC BY-NC 4.0, so the songs are non-commercial.
 >
-> Teaser: `<teaser>` · Tutorial: `<tutorial>` · Repo and download: https://github.com/jplenio/Plenio-VST3
+> Teaser: https://youtu.be/ppJcVOqIaJg · Tutorial: https://youtu.be/rhNspYujXto · Repo and download: https://github.com/jplenio/Plenio-VST3
 >
 > I'd love to hear what breaks on your setup, and which DAW you'd want it tested in next.
 
@@ -90,7 +91,7 @@ text. Lead with REAPER, not with AI.
 > Free and open source (Apache-2.0), Windows, 0.1.0-alpha. The songs themselves are non-commercial (the music model is
 > CC BY-NC 4.0).
 >
-> Tutorial (in REAPER): `<tutorial>` · Repo: https://github.com/jplenio/Plenio-VST3
+> Tutorial (in REAPER): https://youtu.be/rhNspYujXto · Repo: https://github.com/jplenio/Plenio-VST3
 >
 > If you know a cleaner way to do any of the API bits, I'm all ears.
 
@@ -110,7 +111,7 @@ text. Lead with REAPER, not with AI.
 >
 > Plenio VST3 is free and Apache-2.0; YuE2 is CC BY-NC 4.0, so the songs are non-commercial.
 >
-> https://github.com/jplenio/Plenio-VST3 · Teaser: `<teaser>`
+> https://github.com/jplenio/Plenio-VST3 · Teaser: https://youtu.be/ppJcVOqIaJg
 
 ### r/AudioPlugins · a new free instrument
 
@@ -126,7 +127,7 @@ text. Lead with REAPER, not with AI.
 > It needs ComfyUI with Plenio on the same machine (that's where the models run). Windows now, macOS experimental,
 > Apache-2.0. The songs are for non-commercial use (YuE2's licence).
 >
-> Teaser: `<teaser>` · Download: `<release>`
+> Teaser: https://youtu.be/ppJcVOqIaJg · Download: https://github.com/jplenio/Plenio-VST3/releases/tag/v0.1.0-alpha
 
 ### r/WeAreTheMusicMakers · only where the rules allow it
 
@@ -170,39 +171,51 @@ first issue reports will tell), with that DAW's screenshot and its own steps fro
 
 ## YouTube
 
-### The teaser
+Both videos are in the playlist **Plenio VST3** (https://www.youtube.com/playlist?list=PLI7BuX18HQwM). The descriptions below are final: paste them in
+YouTube Studio › *Content* › the video › *Details* › *Description* (YouTube drops `<` and `>` from a description, and
+it shows chapters only when the first starts at 0:00 and each lasts 10 seconds or more, as below).
+
+### The teaser · https://youtu.be/ppJcVOqIaJg
 
 **Title:** Plenio VST3: generate the song, keep working in your DAW
 
 **Description:**
 
-> Plenio VST3 brings the Plenio Music Production System into your DAW: songs made on your own GPU, up to four takes per
-> run, stems, MIDI and a tempo map that fits. Then change the words, the notes or the chords and render again, and keep
-> working with your own plug-ins and instruments.
->
-> Free and open source (Apache-2.0): https://github.com/jplenio/Plenio-VST3
-> Tutorial: `<tutorial>`
->
-> The music in this video was made with Plenio (YuE2, CC BY-NC 4.0).
+```text
+Plenio VST3 brings the Plenio Music Production System into your DAW: songs made on your own GPU, up to four takes per run, stems, MIDI and a tempo map that fits. Then change the words, the notes or the chords and render again, and keep working with your own plug-ins and instruments.
+
+Free and open source (Apache-2.0): https://github.com/jplenio/Plenio-VST3
+Your first song, step by step: https://youtu.be/rhNspYujXto
+Download: https://github.com/jplenio/Plenio-VST3/releases
+
+The music in this video was made with Plenio (YuE2, CC BY-NC 4.0).
+```
 
 **Tags:** Plenio, VST3, AI music, songwriting, REAPER, ComfyUI, YuE, local AI, music production, DAW, open source
 
-### The tutorial
+### The tutorial · https://youtu.be/rhNspYujXto
 
 **Title:** Plenio VST3 tutorial: your first song in your DAW, step by step (REAPER)
 
-**Description:**
+**Description** (the chapters from `tutorial-chapters.txt`):
 
-> Your first song with Plenio VST3, from installing to the song on REAPER's tracks: a style, an idea, takes and stems,
-> changing the words and the notes, the files for your project, and what other DAWs do differently.
->
-> Written tutorial: https://github.com/jplenio/Plenio-VST3/blob/main/docs/TUTORIAL.md
-> Every DAW's steps: https://github.com/jplenio/Plenio-VST3/blob/main/docs/DAWS.md
-> Download: `<release>` · Teaser: `<teaser>`
->
-> Chapters: (from launch/README.md, after the cut)
->
-> The music in this video was made with Plenio (YuE2, CC BY-NC 4.0).
+```text
+Your first song with Plenio VST3, from installing to the song on REAPER's tracks: a style, an idea, takes and stems, changing the words and the notes, the files for your project, and what other DAWs do differently.
+
+0:00 Plenio on a track
+0:27 Make a song
+1:11 Your song
+1:28 Change it
+2:00 Into your project
+2:28 And more
+
+Written tutorial: https://github.com/jplenio/Plenio-VST3/blob/main/docs/TUTORIAL.md
+Every DAW's steps: https://github.com/jplenio/Plenio-VST3/blob/main/docs/DAWS.md
+Download: https://github.com/jplenio/Plenio-VST3/releases
+Teaser: https://youtu.be/ppJcVOqIaJg
+
+The music in this video was made with Plenio (YuE2, CC BY-NC 4.0).
+```
 
 ## Instagram, TikTok, YouTube Shorts · the vertical teaser
 
@@ -267,7 +280,7 @@ plug-in: two takes arrive with lyrics, notes and cover art").
 
 > 👋 I just released **Plenio VST3** (alpha): Plenio's songs, right in your DAW. Pick a style, ComfyUI makes up to four
 > takes with stems, and they land on your track in time with the project, with MIDI and a tempo map. Change words,
-> notes or chords and render again. Free, open source: https://github.com/jplenio/Plenio-VST3 · teaser `<teaser>`
+> notes or chords and render again. Free, open source: https://github.com/jplenio/Plenio-VST3 · teaser https://youtu.be/ppJcVOqIaJg
 
 **Attach:** the 720p teaser (under 10 MB, plays in Discord).
 

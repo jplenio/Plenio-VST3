@@ -111,7 +111,8 @@ python tools/plenio.py sync  <Plenio checkout>   # then: its styles for the demo
 
 **`.github/workflows/plenio.yml`** runs the check every Monday against Plenio's latest release (or a tag or branch by
 hand): when it fits, a pull request takes over the styles and the tested version; when it does not, an issue with the
-report says what changed. When the plug-in starts to use something new of Plenio, raise `recommended`.
+report says what changed. When the plug-in starts to use something new of Plenio, raise `recommended`; a route
+that comes with a feature of Plenio's (`FEATURE_ROUTES`) is required only from a Plenio that has the feature.
 
 ## Media
 
@@ -130,3 +131,6 @@ The videos' music is a YuE2 song (CC BY-NC 4.0), so they live outside the reposi
 ## Releasing
 
 [RELEASING.md](RELEASING.md): from a tag to a published release, with the GitHub repository set up from nothing.
+`tools/release/setup_github.ps1` sets the repository up on GitHub (once, with the GitHub CLI);
+`tools/release/tag_release.ps1` checks a release (version, changelog, release text, pushed) and pushes its tag.
+Both take `-DryRun`.

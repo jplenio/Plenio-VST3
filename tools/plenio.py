@@ -34,6 +34,8 @@ FIELDS = [
 ]
 RECORD = ["documents", "quality", "timing", "subtitles", "title", "files"]
 FEATURES = {"stems": "stems with every take", "bars": "the bars measured in a take (the tempo map)"}
+# routes that came with a feature (Song API 1.4, Plenio 1.6): the plug-in asks for them only when Plenio has it
+FEATURE_ROUTES = {"/jobs/{id}/bars": "bars", "/models": "models"}
 
 
 def version_of(text: str, pattern: str) -> str | None:
@@ -72,7 +74,11 @@ def check(plenio: Path) -> tuple[bool, list[str], dict]:
     openapi = json.loads((plenio / "docs" / "api" / "openapi.json").read_text(encoding="utf-8"))
     paths = set(openapi.get("paths", {}))
     for route in API_ROUTES:
-        note(route in paths, f"Song API route `{route}`")
+        feature = FEATURE_ROUTES.get(route)
+        if feature and feature not in features:
+            note(route in paths, f"Song API route `{route}` (with the feature `{feature}`)", required=False)
+        else:
+            note(route in paths, f"Song API route `{route}`")
     routes = (plenio / "plenio" / "comfy" / "routes.py").read_text(encoding="utf-8")
     for route in OTHER_ROUTES:
         note(f'"{route}"' in routes, f"route `{route}`")
@@ -116,6 +122,7 @@ def briefs(plenio: Path) -> list[dict]:
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")  # the report's ✅ and ❌ on a Windows console too
     if len(sys.argv) < 3 or sys.argv[1] not in ("check", "sync"):
         print(__doc__)
         return 2

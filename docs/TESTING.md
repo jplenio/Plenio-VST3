@@ -14,8 +14,8 @@ end); the alpha release follows from it.
   give your ComfyUI 1.6.0 (a fast-forward, nothing of yours changes), then restart ComfyUI:
 
   ```powershell
-  cd D:\Daten2\ComfyUI\custom_nodes\Plenio-Music-Production-System
-  git fetch D:\Daten2\Deepseek\ComfyUI-MiniMax\Plenio-Music-Production-System song-api-1.4
+  cd <your ComfyUI>\custom_nodes\Plenio-Music-Production-System
+  git fetch <the Plenio checkout next to this repository> song-api-1.4
   git merge --ff-only FETCH_HEAD
   ```
 
