@@ -237,9 +237,10 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
         bed = out.with_suffix(".bed.wav")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af", "loudnorm=I=-20:TP=-2:LRA=11", "-ar", str(rate), str(bed)], check=True)
         raw.unlink(missing_ok=True)
+        part = out.with_name(out.stem + ".part" + out.suffix)
         enc = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                                 "-i", str(bed), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
-                                "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", str(out)], stdin=subprocess.PIPE)
+                                "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", str(part)], stdin=subprocess.PIPE)
     frames_at = [int(s * FPS) for s in preview] if preview else range(n)
     for i in frames_at:
         t = i / FPS
@@ -274,7 +275,9 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
                 print(f"  {i}/{n}")
     if not preview:
         enc.stdin.close()
-        enc.wait()
+        if enc.wait() != 0:
+            sys.exit("ffmpeg failed on the tutorial")
+        part.replace(out)   # the finished name only for a finished video: an MP4 does not open before
         bed.unlink(missing_ok=True)
         (out.parent / "tutorial-chapters.txt").write_text(
             "\n".join(f"{int(t0 // 60)}:{int(t0 % 60):02d} {name}" for t0, name in [(0.0, "Intro")] + chapters), encoding="utf-8")

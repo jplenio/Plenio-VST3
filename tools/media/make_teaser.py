@@ -737,10 +737,14 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
     clip = None if preview else music(song, start, end, out)
 
     def encoder(path: Path, w: int, h: int):
+        """ffmpeg writes <name>.part.mp4: an MP4 opens only once it is finished, so the video gets its name only then."""
+        part = path.with_name(path.stem + ".part" + path.suffix)
         args = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(FPS), "-i", "-",
                 "-i", str(clip), "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-profile:v", "high",
-                "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", "-shortest", str(path)]
-        return subprocess.Popen(args, stdin=subprocess.PIPE)
+                "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", "-shortest", str(part)]
+        proc = subprocess.Popen(args, stdin=subprocess.PIPE)
+        proc.part, proc.final = part, path
+        return proc
 
     wide = None if preview else encoder(out / "plenio-vst3-teaser.mp4", W, H)
     tall = None if preview else encoder(out / "plenio-vst3-teaser-vertical.mp4", VW, VH)
@@ -792,7 +796,9 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
     for p in (wide, tall):
         if p:
             p.stdin.close()
-            p.wait()
+            if p.wait() != 0:
+                sys.exit(f"ffmpeg failed on {p.final.name}")
+            p.part.replace(p.final)
     if clip:
         clip.unlink(missing_ok=True)
     print("done")
