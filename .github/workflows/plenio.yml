@@ -21,7 +21,7 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Which Plenio
         id: which
         env:
@@ -36,7 +36,7 @@ jobs:
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "tested=$tested" >> "$GITHUB_OUTPUT"
           echo "Plenio $ref; tested so far: $tested"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: jplenio/Plenio-Music-Production-System
           ref: ${{ steps.which.outputs.ref }}

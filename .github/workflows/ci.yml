@@ -20,7 +20,7 @@ jobs:
     name: Windows (plug-in, tests, validator)
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -56,7 +56,7 @@ jobs:
     name: Linux (core and tests)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Dependencies (pinned versions)
         shell: pwsh
         run: tools/fetch_deps.ps1
@@ -74,7 +74,7 @@ jobs:
     runs-on: macos-15
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
