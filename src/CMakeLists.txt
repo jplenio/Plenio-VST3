@@ -11,6 +11,17 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/plugin/version.h.in" "${PLENIO_GENER
 add_subdirectory(core)
 add_subdirectory(engine)
 
+# The bundle with both plug-ins: Windows and macOS. On Linux only the core and its tests for now (the plug-in's window
+# there, a GTK WebView inside the host's X11 window, is still to come).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    option(PLENIO_BUILD_PLUGIN "Build the plug-in bundle" OFF)
+else()
+    option(PLENIO_BUILD_PLUGIN "Build the plug-in bundle" ON)
+endif()
+if(NOT PLENIO_BUILD_PLUGIN)
+    return()
+endif()
+
 set(PLENIO_PLUGIN_SOURCES
     plugin/entry.cpp
     plugin/ids.h

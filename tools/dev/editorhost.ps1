@@ -9,14 +9,17 @@
 .PARAMETER Port
     The ComfyUI port written to the dev settings when they do not exist yet (8190: tools\dev_comfyui.ps1).
 
+.PARAMETER DevHome
+    The home folder (PLENIO_VST3_HOME): settings, cache, songs (default .dev\vst3-home).
+
 .PARAMETER Ui
     Load the web UI from webui\dist on disk (PLENIO_WEBUI_DIR) instead of the copy built into the plug-in.
 #>
-param([int]$Port = 8190, [switch]$Ui, [int]$DebugPort = 9333)
+param([int]$Port = 8190, [switch]$Ui, [int]$DebugPort = 9333, [string]$DevHome = '.dev\vst3-home')
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$home_ = Join-Path $root '.dev\vst3-home'
+$home_ = if ([System.IO.Path]::IsPathRooted($DevHome)) { $DevHome } else { Join-Path $root $DevHome }
 $settings = Join-Path $home_ 'config\settings.json'
 if (-not (Test-Path $settings)) {
     New-Item -ItemType Directory -Force (Split-Path $settings) | Out-Null

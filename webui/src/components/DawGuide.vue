@@ -14,19 +14,18 @@ const choice = computed({
   get: () => picked.value || detected.value?.id || 'other',
   set: (id: string) => (picked.value = id)
 })
-const title = computed(() => (daw.value ? `In ${daw.value.name}` : 'In your DAW'))
 </script>
 
 <template>
   <div class="card guide">
     <div class="card-head">
       <Icon name="library" :size="15" />
-      <b>{{ title }}</b>
-      <span v-if="daw && daw === detected" class="here">this DAW</span>
-      <select v-model="choice" class="select pick" title="The steps for another DAW">
+      <span class="lead">Steps for</span>
+      <select v-model="choice" class="pick" title="The steps for another DAW">
         <option v-for="d in DAWS" :key="d.id" :value="d.id">{{ d.name }}</option>
-        <option value="other">Another VST3 DAW</option>
+        <option value="other">another VST3 DAW</option>
       </select>
+      <span v-if="daw && daw === detected" class="here">you are here</span>
     </div>
     <p v-if="daw?.unsupported" class="unsupported"><Icon name="warning" :size="13" />{{ daw.unsupported }}</p>
     <dl v-else class="steps">
@@ -51,6 +50,23 @@ const title = computed(() => (daw.value ? `In ${daw.value.name}` : 'In your DAW'
 <style scoped>
 .guide .card-head {
   flex-wrap: wrap;
+  gap: 6px;
+}
+.lead {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.pick {
+  font: inherit;
+  font-weight: 650;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  height: 28px;
+  padding: 0 6px;
+  max-width: 100%;
+  cursor: pointer;
 }
 .here {
   font-size: 11px;
@@ -59,30 +75,21 @@ const title = computed(() => (daw.value ? `In ${daw.value.name}` : 'In your DAW'
   background: rgba(47, 195, 168, 0.16);
   color: #6fe0c8;
 }
-.pick {
-  margin-left: auto;
-  width: auto;
-  min-width: 150px;
-  height: 28px;
-  font-size: 12px;
-  padding: 0 8px;
-}
 .steps {
-  margin: 4px 0 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 12px;
-  row-gap: 7px;
+  margin: 2px 0 0;
   font-size: 12.5px;
   line-height: 1.5;
 }
 .steps dt {
+  margin-top: 10px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  font-weight: 600;
-  white-space: nowrap;
 }
 .steps dd {
-  margin: 0;
+  margin: 2px 0 0;
   color: var(--text-dim);
 }
 .unsupported {
