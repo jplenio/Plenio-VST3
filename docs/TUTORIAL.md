@@ -36,9 +36,12 @@ Download the newest version from the [Releases](https://github.com/jplenio/Pleni
 
 Start your DAW. Most DAWs find new plug-ins on their own; REAPER: *Options › Preferences › Plug-ins › VST › Re-scan*.
 
-In REAPER: **Insert › Virtual instrument on new track…**, type `plenio`, choose **VST3i: Plenio (Plenio)**.
+In REAPER: **Insert › Virtual instrument on new track…**, type `plenio`, double-click **VST3i: Plenio (Plenio)**.
 
 ![REAPER's list of instruments with Plenio](media/screens/reaper-insert.png)
+
+REAPER then asks whether it should add tracks for Plenio's outputs (*Build Routing Confirmation*): click **No**.
+Plenio lays out the song's tracks itself later ([step 9](#9-into-your-project)).
 
 Plenio's window opens over the track. You can close it and open it again any time (in REAPER: the track's *FX* button).
 
@@ -144,6 +147,8 @@ The **DAW** tab holds the chosen take's files for your project. Drag one onto yo
 the lyrics (an item per line), the song (every take as one of REAPER's takes: choose one with the take lane), the MIDI
 (muted: put an instrument on it), the stems, the sections as regions, and the project's tempo map from the take's bars.
 The take you choose in REAPER and in Plenio stay the same.
+
+![Put on tracks in REAPER](media/anim/reaper-tracks.gif)
 
 ![REAPER after Put on tracks](media/screens/reaper-tracks.png)
 

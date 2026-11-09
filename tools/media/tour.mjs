@@ -2,7 +2,8 @@
 // clicks and types, and every moment is kept as a frame (JPEG) with its time. Drives the real plug-in over the
 // DevTools protocol (tools/dev/editorhost.ps1, or a DAW started with WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS).
 //
-//   node tools/media/tour.mjs <out> <scene> [<scene> …]      scenes: new-song takes lyrics notes daw cover library
+//   node tools/media/tour.mjs <out> <scene> [<scene> …]      scenes: new-song takes lyrics notes daw cover library,
+//                                                             reaper-put (in REAPER, its DAW tab open: Put on tracks)
 //   node tools/media/tour.mjs <out> timelapse [seconds] [interval]   a frame every interval (s) while takes are made
 //
 // Writes <out>/<scene>/frame-00001.jpg … and frames.txt, an ffmpeg concat list with every frame's duration
@@ -275,6 +276,15 @@ const scenes = {
     await start('cover')
     await click('.header .cover', { pause: 2600 })
     await click('.cover-view .btn|Close', { pause: 600 })
+    await stop()
+  },
+
+  // REAPER (the plug-in in REAPER, its DAW tab open): Put on tracks
+  async 'reaper-put'() {
+    await start('reaper-put')
+    await moveTo('.card.reaper .btn.primary', 900)
+    await sleep(500)
+    await click('.card.reaper .btn.primary', { pause: 2500 })
     await stop()
   },
 

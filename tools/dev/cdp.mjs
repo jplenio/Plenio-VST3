@@ -12,7 +12,7 @@ const [, , command, ...args] = process.argv
 
 async function page() {
   const targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json()
-  const target = targets.find((t) => t.type === 'page')
+  const target = targets.find((t) => t.type === 'page' && !/^(edge|chrome|devtools):/.test(t.url))   // not a browser's own pages
   if (!target) throw new Error('no page: is the plug-in window open?')
   const ws = new WebSocket(target.webSocketDebuggerUrl)
   await new Promise((resolve, reject) => {

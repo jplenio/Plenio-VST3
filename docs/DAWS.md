@@ -30,7 +30,7 @@ plug-in shows the same steps in its **DAW tab**, those of the DAW it runs in fir
 
 ## REAPER
 
-- **Add Plenio:** Insert › Virtual instrument on new track… › VST3i: Plenio (Plenio).
+- **Add Plenio:** Insert › Virtual instrument on new track… › VST3i: Plenio (Plenio). When REAPER offers new tracks for Plenio's outputs (Build Routing Confirmation), say No: Put on tracks makes the song's tracks later.
 - **Tempo map:** DAW tab › Put on tracks sets the project's tempo map from the take's bars. Or drop the Tempo map file at bar 1 and say yes when REAPER asks to import its tempo. Plenio keeps its own audio in the project in time (timebase Time): the grid moves onto the song, the song keeps its speed.
 - **Stems:** Put on tracks gives every stem a track of its own. Plenio's extra outputs can also be routed with the plug-in's I/O (pin connector) button.
 - **MIDI:** Put on tracks adds Melody, Instrument Line and Chords as MIDI items, muted: put an instrument on their tracks to hear them.

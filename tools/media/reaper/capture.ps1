@@ -9,6 +9,7 @@
 param([string]$Title = '', [switch]$Screen, [string]$Out = 'capture.png', [switch]$List)
 
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type @'
 using System;
 using System.Collections.Generic;
@@ -45,8 +46,7 @@ if ($List) {
 }
 
 if ($Screen) {
-    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds 2>$null
-    if (-not $b) { Add-Type -AssemblyName System.Windows.Forms; $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds }
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
     $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)

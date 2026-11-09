@@ -123,6 +123,7 @@ The screenshots, animations and videos come from the real plug-in:
 | `tools/media/make_media.py anims|clips <tour>` | the GIFs in `docs/media/anim`, 1080p clips for the videos |
 | `tools/media/render_brand.py` | logo, banner and social preview from `docs/media/src` (headless Edge or Chrome) |
 | `tools/media/make_teaser.py`, `make_tutorial.py` | the teaser and the tutorial video, cut to the demo song's bars |
+| `tools/media/reaper/` | REAPER's pictures and clips: Lua scripts run in the open REAPER (`reaper.exe -nonewinst <script>`: the instrument dialog, Plenio's floating window, zoom, play, stop, save, quit), `capture.ps1` (a window or the screen as PNG), `window.ps1` (place a window, send it keys), `mouse.ps1` (move and click, for recordings) |
 
 The videos' music is a YuE2 song (CC BY-NC 4.0), so they live outside the repository (see [launch](launch/README.md)).
 

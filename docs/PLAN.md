@@ -446,24 +446,25 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
 
 **Documentation**
 - [x] README: what Plenio VST3 is, in a minute; pictures; install; DAWs; links
-- [~] Tutorial for beginners, with screenshots and animations (REAPER, and what differs elsewhere)
-  💡 `docs/TUTORIAL.md`: thirteen steps, a picture or animation for each. Open: the three REAPER screenshots (`reaper-insert.png`, `reaper-plenio.png`, `reaper-tracks.png`), from the REAPER session.
+- [x] Tutorial for beginners, with screenshots and animations (REAPER, and what differs elsewhere)
+  💡 `docs/TUTORIAL.md`: thirteen steps, a picture or animation for each. REAPER's own pictures come from the REAPER session: the instrument dialog, Plenio's window, the DAW tab, the tracks after *Put on tracks* and an animation of it (`reaper-tracks.gif`). REAPER asks whether to build routing for Plenio's outputs: *No*, now in the tutorial, in `DAWS.md` and in the plug-in's guide.
 - [x] The DAWs: every one's own steps (also in the plug-in)
 - [x] Development guide, CHANGELOG, how new Plenio versions come in
 - [x] How to release: the GitHub repository from nothing, the Actions, the tag, the release
   💡 `docs/RELEASING.md`; the launch plan and every channel's text in `docs/launch/`.
 
 **Media and launch**
-- [~] A demo song made with the plug-in in the owner's REAPER 7 (the owner's wish: screenshots and runs in it)
-  💡 Two demo songs made with the plug-in in EditorHost on the dev ComfyUI (*The Height of the Flight*, synth pop, and *Scent of the Night*, dance pop, each two takes with stems and cover art). The REAPER session (screenshots and clips in REAPER 7) needs the newest build installed (UAC: the owner).
+- [x] A demo song made with the plug-in in the owner's REAPER 7 (the owner's wish: screenshots and runs in it)
+  💡 Two demo songs made with the plug-in in EditorHost on the dev ComfyUI (*The Height of the Flight*, synth pop, and *Scent of the Night*, dance pop, each two takes with stems and cover art). The REAPER session (2026-11-09, REAPER 7.85, the installed build, `PLENIO_VST3_HOME` on the demo home): Plenio inserted on a new track, the song opened, *Put on tracks*, played; five screenshots, two clips (`.dev/tour/reaper-insert.mp4`, `reaper-tracks.mp4`), the demo project in `.dev/reaper-demo/`. REAPER's settings (`REAPER.ini`) backed up before and put back after; nothing in REAPER's preferences touched.
 - [x] Logo, banner, social preview, screenshots (no version in them), animations
   💡 `docs/media`: brand renders, screenshots, eight animations from the tour (`tools/media/tour.mjs`, `make_media.py`).
-- [~] The teaser: animated, at once clear what it offers (16:9, 9:16 for Shorts, Reels and TikTok)
-  💡 `tools/media/make_teaser.py`: 72 s cut to the demo song's verse and chorus, karaoke, the plug-in's own recordings, stems, the measured tempo, the cover, the DAWs. The REAPER scene waits for its screenshot.
-- [~] The tutorial as a video: every important step, light and short
-  💡 `tools/media/make_tutorial.py`: six chapters, a camera on the plug-in's recordings, a caption for every step, about 2:30. REAPER's steps come in with the REAPER session's clips.
+- [x] The teaser: animated, at once clear what it offers (16:9, 9:16 for Shorts, Reels and TikTok)
+  💡 `tools/media/make_teaser.py`: 72 s cut to the demo song's verse and chorus, karaoke, the plug-in's own recordings, stems, the measured tempo, REAPER after *Put on tracks*, the cover, the DAWs; the music at -14 LUFS. In `../plenio-vst3-launch/video/` (not committed: CC BY-NC 4.0 music).
+- [x] The tutorial as a video: every important step, light and short
+  💡 `tools/media/make_tutorial.py`: six chapters, a camera on the plug-in's recordings and on REAPER's own steps (the session's clips, zoomed on the dialogs), a caption for every step, 2:51; the chapters for YouTube in `tutorial-chapters.txt`, a thumbnail beside it. 720p copies under 10 MB in `../plenio-vst3-launch/web/`.
 - [x] The marketing toolkit: texts for every channel (no X; Reddit with care, in the author's own voice), which picture or video goes with which post
 - [x] The release's text
+- [ ] Publishing: Plenio 1.6.0 first, then the repository, the tag `v0.1.0-alpha`, the release, YouTube, the posts: the owner's ([launch/README.md](launch/README.md), [RELEASING.md](RELEASING.md))
 
 ---
 
@@ -479,3 +480,4 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
 | 2026-11-08 | Phase 7: another take of the song in a clip, chosen in Plenio ARA's window |
 | 2026-11-08 | The owner's first REAPER test: a take dropped in before the tempo map played at 63 % of its speed (REAPER's default timebase stretched it). Plenio's audio in REAPER keeps its time, *Put on tracks* sets the tempo map first and leaves the user's items alone; tested against a fake REAPER; the tests keep apart from the owner's log; the log in local time |
 | 2026-11-09 | The owner's test: the cover art fetched and kept (`cover.jpg` in the song's folder), shown in the window, the icon of REAPER's song tracks |
+| 2026-11-09 | Phase 9 ready but for publishing: DAW guide in the plug-in, installers and workflows, README, tutorial, DAWS.md, release text, launch kit; the REAPER session in the owner's REAPER 7 (screenshots, clips, REAPER's routing question documented); teaser and tutorial video rendered |

@@ -3,7 +3,8 @@
 
 export async function connect(port = process.env.PLENIO_CDP_PORT ?? '9333') {
   const targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json()
-  const target = targets.find((t) => t.type === 'page')
+  // a browser's own pages (edge://, chrome://) are not the plug-in's
+  const target = targets.find((t) => t.type === 'page' && !/^(edge|chrome|devtools):/.test(t.url))
   if (!target) throw new Error('no page: is the plug-in window open?')
   const ws = new WebSocket(target.webSocketDebuggerUrl)
   await new Promise((resolve, reject) => {

@@ -64,8 +64,9 @@ if the subreddit prefers.
 
 ### r/Reaper · the deepest integration, the most demanding crowd
 
-**Picture or video:** `docs/media/screens/reaper-tracks.png` (the song on REAPER's tracks) as the post's image; the
-tutorial video in the text. Lead with REAPER, not with AI.
+**Picture or video:** `docs/media/screens/reaper-tracks.png` (the song on REAPER's tracks) as the post's image, or
+`docs/media/anim/reaper-tracks.gif` (the click on *Put on tracks* and the tracks arriving); the tutorial video in the
+text. Lead with REAPER, not with AI.
 
 **Title:** I built a free VST3 that lays a generated song out on REAPER's own tracks: every take as a REAPER take, stems, MIDI, lyrics as items, sections as regions, and a tempo map from the measured bars
 
@@ -293,9 +294,9 @@ plug-in: two takes arrive with lyrics, notes and cover art").
 ## Product Hunt
 
 **Tagline:** Generate the song. Keep working in your DAW.
-**Description:** the medium text above. **Gallery:** `social-preview.png`, `song.png`, `reaper-tracks.png`,
-`daw-guide.png`, the teaser. **First comment:** why it exists (the blank page, editable material instead of files) and
-what to test.
+**Description:** the medium text above. **Gallery:** `social-preview.png`, `song.png`, `reaper-song.png`,
+`reaper-tracks.png`, `daw-guide.png`, the teaser. **First comment:** why it exists (the blank page, editable
+material instead of files) and what to test.
 
 ## Plenio's own channels
 
@@ -320,7 +321,7 @@ your own GPU. VST3 + ARA 2.
 | Post | Picture or video |
 |---|---|
 | r/comfyui, Discord, YouTube | the teaser (16:9; Discord: the 720p copy) |
-| r/Reaper, Product Hunt | `docs/media/screens/reaper-tracks.png`, the tutorial |
+| r/Reaper, Product Hunt | `docs/media/screens/reaper-tracks.png` or `docs/media/anim/reaper-tracks.gif`, the tutorial |
 | r/LocalLLaMA, Bluesky, Mastodon | `docs/media/anim/timelapse.gif` |
 | r/AudioPlugins | `docs/media/screens/song.png` |
 | r/WeAreTheMusicMakers | `docs/media/anim/notes.gif` |

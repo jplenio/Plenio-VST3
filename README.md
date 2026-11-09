@@ -63,6 +63,8 @@ takes, the stems, the MIDI, the lyrics, the sections as regions, the tempo map a
 
 <p align="center"><img src="docs/media/anim/daw.gif" alt="The DAW tab: take, stems, MIDI, tempo map and click to drag, and the steps for your DAW" width="80%"></p>
 
+<p align="center"><img src="docs/media/screens/reaper-tracks.png" alt="REAPER after Put on tracks: the song's folder with its lyrics, the song with both takes, melody, instrument line, chords and the stems, its sections as regions, the cover as the tracks' icon" width="100%"></p>
+
 ### And more
 
 - **Stems on their own channels**: activate Plenio's extra outputs; **MIDI out** for melody, instrument line and chords.

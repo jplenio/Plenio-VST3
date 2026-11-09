@@ -5,7 +5,9 @@
 Chapters of the tour's real frames (tools/media/tour.mjs) and the screenshots in docs/media/screens, a camera that
 moves to the part of the window each step is about, a caption for every step, and quietly under it the song the tour
 made. REAPER's own steps come from clips in the tour folder when they are there (reaper-insert.mp4, reaper-tracks.mp4,
-recorded from REAPER's window), else from their screenshots. With seconds, only those frames, as PNG beside the video.
+recorded from REAPER's window), else from their screenshots. Beside the video: `tutorial-chapters.txt` (for YouTube's
+description) and `tutorial-thumbnail.png`. With seconds, only those frames, as PNG beside the video; with `thumbnail`,
+only the thumbnail.
 The music is a YuE2 song, so the video is CC BY-NC 4.0, like the teaser. Needs what make_teaser.py needs.
 """
 
@@ -28,6 +30,10 @@ W, H, FPS = mt.W, mt.H, mt.FPS
 SCREENS = mt.SCREENS
 STAGE = (90, 70, W - 90, H - 200)   # where the window is shown (the caption under it)
 FULL = None                          # the whole picture
+# REAPER's clips, recorded from a 2560 x 1440 screen: the camera on the instrument dialog and the routing question, and
+# on the track list with Plenio's DAW tab beside it
+REAPER_DIALOGS = (720, 190, 1500, 1090)
+REAPER_PUT = (0, 130, 1700, 1120)
 
 
 @dataclass
@@ -44,7 +50,7 @@ class Step:
 
 CHAPTERS = [
     ("Plenio on a track", [
-        Step("Put Plenio on a track", "REAPER: Insert › Virtual instrument on new track › VST3i: Plenio", "clip:reaper-insert.mp4"),
+        Step("Put Plenio on a track", "REAPER: Insert › Virtual instrument on new track › Plenio, then No to the routing question", "clip:reaper-insert.mp4", REAPER_DIALOGS),
         Step("Plenio on a track", "its window opens over the track", "shot:reaper-plenio.png", seconds=3.5),
         Step("Accept the models' licences, once", "YuE2 and SheetSage2: CC BY-NC 4.0, for non-commercial use", "shot:licence.png", (480, 240, 820, 660), seconds=4.0),
     ]),
@@ -62,7 +68,7 @@ CHAPTERS = [
     ]),
     ("Into your project", [
         Step("The DAW tab", "drag the take, its stems, the MIDI, the tempo map, a click: all from bar 1", "scene:daw", speed=1.0),
-        Step("REAPER: Put on tracks", "every take as a REAPER take, the stems, the MIDI, the lyrics, the tempo map", "clip:reaper-tracks.mp4"),
+        Step("REAPER: Put on tracks", "every take as a REAPER take, the stems, the MIDI, the lyrics, the tempo map", "clip:reaper-tracks.mp4", REAPER_PUT),
         Step("REAPER: the song on its tracks", "choose a take on the take lane: Plenio follows", "shot:reaper-tracks.png", seconds=4.0),
     ]),
     ("And more", [
@@ -108,29 +114,35 @@ def plan(tour: Path) -> list[tuple[int, Step]]:
     return out
 
 
-_clips: dict[str, cv2.VideoCapture] = {}
+_clips: dict[str, list] = {}   # a clip: [its capture, the next frame it reads, the last frame read]
 
 
 def picture_of(ref) -> np.ndarray:
-    """A source frame as RGB float: a file, or (clip, frame number)."""
+    """A source frame as RGB float: a file, or (clip, frame number). A clip is read on from where it stands: seeking
+    for every frame would decode from the last keyframe each time."""
     if isinstance(ref, tuple):
         path, k = ref
-        cap = _clips.get(str(path))
-        if cap is None:
-            cap = _clips[str(path)] = cv2.VideoCapture(str(path))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, k)
+        entry = _clips.get(str(path))
+        if entry is None:
+            entry = _clips[str(path)] = [cv2.VideoCapture(str(path)), 0, None]
+        cap, at, last = entry
+        if k == at - 1 and last is not None:
+            return last
+        if k != at:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, k)
         ok, bgr = cap.read()
         if not ok:
             return np.zeros((H, W, 3), np.float32)
-        return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        entry[1], entry[2] = k + 1, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        return entry[2]
     return np.asarray(Image.open(ref).convert("RGB"), np.float32) / 255.0
 
 
-def place(canvas: np.ndarray, img: np.ndarray, view: tuple | None, alpha: float) -> None:
+def place(canvas: np.ndarray, img: np.ndarray, view: tuple | None, alpha: float, stage: tuple = STAGE) -> None:
     """The camera: the view of the source fitted into the stage, with a neon frame and shadow."""
     x, y, w, h = view if view else (0, 0, img.shape[1], img.shape[0])
     crop = img[int(y): int(y + h), int(x): int(x + w)]
-    sx0, sy0, sx1, sy1 = STAGE
+    sx0, sy0, sx1, sy1 = stage
     scale = min((sx1 - sx0) / crop.shape[1], (sy1 - sy0) / crop.shape[0])
     cw, ch = max(1, int(crop.shape[1] * scale)), max(1, int(crop.shape[0] * scale))
     pic = cv2.resize(crop, (cw, ch), interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
@@ -173,6 +185,21 @@ def outro(canvas: np.ndarray, u: float) -> None:
     mt.text(canvas, mt.URL, "Bold", 44, W / 2, H * 0.62, mt.ease((u - 0.25) / 0.2), fill="gradient")
     mt.text(canvas, "Free & open source  ·  runs on your GPU  ·  songs for non-commercial use (YuE2, CC BY-NC 4.0)", "Medium", 24, W / 2, H * 0.86, 0.8 * mt.ease((u - 0.3) / 0.2))
     canvas[:] = canvas * (1 - mt.ease((u - 0.85) / 0.15))
+
+
+def thumbnail(world, out: Path) -> None:
+    """The video's picture for YouTube and the posts: the title on the left, Plenio in REAPER on the right."""
+    canvas = world.draw(30.0, 30.0, 0.7) * 0.85
+    shot = next((SCREENS / n for n in ("reaper-daw.png", "song.png") if (SCREENS / n).is_file()), None)
+    if shot:
+        view = (0, 62, 1500, 1000) if shot.name.startswith("reaper") else None
+        place(canvas, picture_of(shot), view, 1.0, stage=(int(W * 0.47), int(H * 0.15), W - 70, int(H * 0.85)))
+    mt.text(canvas, "TUTORIAL", "Bold", 34, 110, H * 0.17, 0.9, spacing=0.3, anchor="left")
+    for i, line in enumerate(("YOUR FIRST", "SONG IN", "YOUR DAW")):
+        mt.text(canvas, line, "Black", 100, 104, H * 0.25 + i * 118, 1.0, fill="gradient", glow=14, anchor="left")
+    mt.paste(canvas, mt.logo_sprite(1.0, 96), 110, H * 0.73)
+    mt.text(canvas, "PLENIO VST3", "ExtraBold", 52, 226, H * 0.73 + 20, 1.0, spacing=0.05, anchor="left")
+    Image.fromarray((np.clip(canvas, 0, 1) * 255).astype(np.uint8)).save(out)
 
 
 def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None = None) -> None:
@@ -251,11 +278,17 @@ def render(song_folder: Path, tour: Path, out: Path, preview: list[float] | None
         bed.unlink(missing_ok=True)
         (out.parent / "tutorial-chapters.txt").write_text(
             "\n".join(f"{int(t0 // 60)}:{int(t0 % 60):02d} {name}" for t0, name in [(0.0, "Intro")] + chapters), encoding="utf-8")
+        thumbnail(world, out.parent / "tutorial-thumbnail.png")
     print("done")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         sys.exit(__doc__)
+    if len(sys.argv) > 4 and sys.argv[4] == "thumbnail":
+        song = mt.load_song(Path(sys.argv[1]), Path(sys.argv[2]))
+        data, rate = sf.read(str(song.audio), dtype="float32", always_2d=True)
+        thumbnail(mt.World(song, mt.envelope(data, rate)), Path(sys.argv[3]).parent / "tutorial-thumbnail.png")
+        sys.exit(0)
     at = [float(s) for s in sys.argv[4].split(",")] if len(sys.argv) > 4 else None
     render(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), at)
