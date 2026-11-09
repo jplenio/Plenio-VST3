@@ -57,7 +57,7 @@ jobs:
           npx vitest run
       - name: Propose the result
         if: steps.sync.outputs.code == '0'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: plenio/${{ steps.sync.outputs.version }}
           commit-message: 'Plenio ${{ steps.sync.outputs.version }}: checked, styles taken over'
