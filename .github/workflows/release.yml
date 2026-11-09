@@ -19,10 +19,10 @@ jobs:
     name: Windows installer and zip
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -48,7 +48,7 @@ jobs:
       - name: Installer, zip, checksums
         shell: pwsh
         run: tools/package.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/*
@@ -58,10 +58,10 @@ jobs:
     runs-on: macos-15
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -83,7 +83,7 @@ jobs:
           chmod +x installer/macos/build_pkg.sh
           version=$(sed -n 's/#define PLENIO_VERSION_STRING "\(.*\)"/\1/p' build/generated/plenio_version.h)
           installer/macos/build_pkg.sh build/VST3/Release/Plenio.vst3 "$version" dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*
@@ -96,10 +96,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Files and checksums
