@@ -1,6 +1,7 @@
 #include "platform/main_thread.h"
 #include "core/log.h"
 
+#include <algorithm>
 #include <deque>
 #include <map>
 #include <memory>
@@ -9,6 +10,11 @@
 
 #ifdef _WIN32
  #include <windows.h>
+#elif defined(__APPLE__)
+ // the host's main run loop: tasks through the main dispatch queue, timers as run loop timers (plain C APIs)
+ #include <CoreFoundation/CoreFoundation.h>
+ #include <dispatch/dispatch.h>
+ #include <cstdint>
 #endif
 
 namespace plenio::platform
@@ -25,6 +31,8 @@ struct Dispatcher
     std::thread::id thread;
 #ifdef _WIN32
     HWND window = nullptr;
+#elif defined(__APPLE__)
+    std::map<int, CFRunLoopTimerRef> runLoopTimers;
 #endif
 };
 
@@ -115,6 +123,16 @@ LRESULT CALLBACK windowProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
     }
     return DefWindowProcW (hwnd, message, wParam, lParam);
 }
+#elif defined(__APPLE__)
+void drainOnMain (void*)
+{
+    drain();
+}
+
+void timerFired (CFRunLoopTimerRef, void* info)
+{
+    fireTimer (static_cast<int> (reinterpret_cast<std::intptr_t> (info)));
+}
 #endif
 } // namespace
 
@@ -155,6 +173,13 @@ void detachMainThread()
         d.window = nullptr;
     }
     UnregisterClassW (className, moduleHandle());
+#elif defined(__APPLE__)
+    for (auto& [id, timer] : d.runLoopTimers)
+    {
+        CFRunLoopTimerInvalidate (timer);
+        CFRelease (timer);
+    }
+    d.runLoopTimers.clear();
 #endif
     d.timers.clear();
     d.queue.clear();
@@ -175,6 +200,9 @@ void postToMainThread (std::function<void()> fn)
 #ifdef _WIN32
     if (d.window != nullptr && d.queue.size() == 1)
         PostMessageW (d.window, drainMessage, 0, 0);
+#elif defined(__APPLE__)
+    if (d.queue.size() == 1)
+        dispatch_async_f (dispatch_get_main_queue(), nullptr, drainOnMain);
 #endif
 }
 
@@ -192,6 +220,18 @@ int addTimer (int milliseconds, std::function<void()> fn)
         d.timers.erase (id);
         return 0;
     }
+#elif defined(__APPLE__)
+    CFRunLoopTimerContext context {};
+    context.info = reinterpret_cast<void*> (static_cast<std::intptr_t> (id));
+    const double interval = std::max (1, milliseconds) / 1000.0;
+    auto timer = CFRunLoopTimerCreate (kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + interval, interval, 0, 0, timerFired, &context);
+    if (timer == nullptr)
+    {
+        d.timers.erase (id);
+        return 0;
+    }
+    CFRunLoopAddTimer (CFRunLoopGetMain(), timer, kCFRunLoopCommonModes);
+    d.runLoopTimers[id] = timer;
 #endif
     return id;
 }
@@ -205,6 +245,13 @@ void removeTimer (int id)
 #ifdef _WIN32
     if (d.window != nullptr)
         KillTimer (d.window, static_cast<UINT_PTR> (id));
+#elif defined(__APPLE__)
+    if (auto it = d.runLoopTimers.find (id); it != d.runLoopTimers.end())
+    {
+        CFRunLoopTimerInvalidate (it->second);
+        CFRelease (it->second);
+        d.runLoopTimers.erase (it);
+    }
 #endif
 }
 

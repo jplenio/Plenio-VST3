@@ -8,6 +8,17 @@
  #include <shlobj.h>
 #endif
 
+#ifndef _WIN32
+ #include <spawn.h>
+ #include <sys/wait.h>
+ #include <unistd.h>
+extern char** environ;
+#endif
+
+#include <optional>
+#include <string>
+#include <vector>
+
 namespace plenio::platform
 {
 #ifdef _WIN32
@@ -71,15 +82,108 @@ std::optional<std::filesystem::path> showDialog (bool folders, const std::string
 } // namespace
 #endif
 
+#ifndef _WIN32
+namespace
+{
+/// Runs a program (no shell between) and gives its standard output without the last line break; nothing when it
+/// cannot start or ends with an error (a dialog cancelled).
+std::optional<std::string> run (const std::vector<std::string>& args)
+{
+    int pipefd[2] = { -1, -1 };
+    if (pipe (pipefd) != 0)
+        return std::nullopt;
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init (&actions);
+    posix_spawn_file_actions_adddup2 (&actions, pipefd[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addclose (&actions, pipefd[0]);
+    std::vector<char*> argv;
+    for (const auto& a : args)
+        argv.push_back (const_cast<char*> (a.c_str()));
+    argv.push_back (nullptr);
+    pid_t pid = 0;
+    const int started = posix_spawnp (&pid, argv[0], &actions, nullptr, argv.data(), environ);
+    posix_spawn_file_actions_destroy (&actions);
+    close (pipefd[1]);
+    if (started != 0)
+    {
+        close (pipefd[0]);
+        return std::nullopt;
+    }
+    std::string out;
+    char buffer[4096];
+    for (ssize_t n; (n = read (pipefd[0], buffer, sizeof buffer)) > 0;)
+        out.append (buffer, static_cast<std::size_t> (n));
+    close (pipefd[0]);
+    int status = 0;
+    waitpid (pid, &status, 0);
+    if (! WIFEXITED (status) || WEXITSTATUS (status) != 0)
+        return std::nullopt;
+    while (! out.empty() && (out.back() == '\n' || out.back() == '\r'))
+        out.pop_back();
+    return out;
+}
+
+ #ifdef __APPLE__
+/// Text inside an AppleScript string.
+std::string quoted (const std::string& text)
+{
+    std::string out = "\"";
+    for (char c : text)
+    {
+        if (c == '"' || c == '\\')
+            out += '\\';
+        out += c;
+    }
+    return out + "\"";
+}
+
+/// A dialog of System Events (a process of its own: the host's main thread waits for it, so the host itself must
+/// not be the one asked).
+std::optional<std::filesystem::path> appleDialog (const std::string& choose)
+{
+    auto answer = run ({ "osascript", "-e", "tell application \"System Events\" to activate", "-e",
+                         "tell application \"System Events\" to POSIX path of (" + choose + ")" });
+    if (! answer || answer->empty())
+        return std::nullopt;
+    return paths::fromUtf8 (*answer);
+}
+ #endif
+} // namespace
+#endif
+
 std::optional<std::filesystem::path> chooseFile (const std::string& title, const std::vector<FileFilter>& filters, void* owner)
 {
 #ifdef _WIN32
     return showDialog (false, title, filters, owner);
-#else
-    (void) title;
-    (void) filters;
+#elif defined(__APPLE__)
     (void) owner;
-    return std::nullopt;
+    // "*.wav;*.flac" -> {"wav", "flac"}
+    std::string types;
+    for (const auto& f : filters)
+        for (std::size_t at = 0; at < f.patterns.size();)
+        {
+            auto end = f.patterns.find (';', at);
+            auto pattern = f.patterns.substr (at, end == std::string::npos ? std::string::npos : end - at);
+            if (auto dot = pattern.rfind ('.'); dot != std::string::npos && pattern.find ('*') != std::string::npos)
+                types += (types.empty() ? "" : ", ") + quoted (pattern.substr (dot + 1));
+            if (end == std::string::npos)
+                break;
+            at = end + 1;
+        }
+    return appleDialog ("choose file with prompt " + quoted (title) + (types.empty() ? "" : " of type {" + types + "}"));
+#else
+    (void) owner;
+    std::vector<std::string> args { "zenity", "--file-selection", "--title=" + title };
+    for (const auto& f : filters)
+    {
+        std::string patterns = f.patterns;
+        for (auto& c : patterns)
+            if (c == ';')
+                c = ' ';
+        args.push_back ("--file-filter=" + f.label + " | " + patterns);
+    }
+    auto answer = run (args);
+    return answer && ! answer->empty() ? std::optional<std::filesystem::path> (paths::fromUtf8 (*answer)) : std::nullopt;
 #endif
 }
 
@@ -87,10 +191,13 @@ std::optional<std::filesystem::path> chooseFolder (const std::string& title, voi
 {
 #ifdef _WIN32
     return showDialog (true, title, {}, owner);
-#else
-    (void) title;
+#elif defined(__APPLE__)
     (void) owner;
-    return std::nullopt;
+    return appleDialog ("choose folder with prompt " + quoted (title));
+#else
+    (void) owner;
+    auto answer = run ({ "zenity", "--file-selection", "--directory", "--title=" + title });
+    return answer && ! answer->empty() ? std::optional<std::filesystem::path> (paths::fromUtf8 (*answer)) : std::nullopt;
 #endif
 }
 
@@ -105,8 +212,15 @@ void reveal (const std::filesystem::path& path)
         auto args = L"/select,\"" + path.wstring() + L"\"";
         ShellExecuteW (nullptr, L"open", L"explorer.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
     }
+#elif defined(__APPLE__)
+    std::error_code ec;
+    if (std::filesystem::is_directory (path, ec))
+        run ({ "open", paths::toUtf8 (path) });
+    else
+        run ({ "open", "-R", paths::toUtf8 (path) });
 #else
-    (void) path;
+    std::error_code ec;
+    run ({ "xdg-open", paths::toUtf8 (std::filesystem::is_directory (path, ec) ? path : path.parent_path()) });
 #endif
 }
 
@@ -115,8 +229,10 @@ void openExternally (const std::string& target)
 #ifdef _WIN32
     auto wide = paths::fromUtf8 (target).wstring();
     ShellExecuteW (nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+#elif defined(__APPLE__)
+    run ({ "open", target });
 #else
-    (void) target;
+    run ({ "xdg-open", target });
 #endif
 }
 

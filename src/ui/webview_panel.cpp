@@ -75,10 +75,21 @@ void openExternally (const std::string& uri)
 #ifdef _WIN32
     auto wide = paths::fromUtf8 (uri).wstring();
     ShellExecuteW (nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+#elif defined(__APPLE__)
+    if (id url = choc::objc::callClass<id> ("NSURL", "URLWithString:", choc::objc::getNSString (uri)))
+        choc::objc::call<BOOL> (choc::objc::callClass<id> ("NSWorkspace", "sharedWorkspace"), "openURL:", url);
 #else
     (void) uri;
 #endif
 }
+
+#ifdef __APPLE__
+/// The WebView's NSView inside the host's: the whole of it, and growing with it.
+void fill (id view, int width, int height)
+{
+    choc::objc::call<void> (view, "setFrame:", choc::objc::CGRect { { 0, 0 }, { static_cast<choc::objc::CGFloat> (width), static_cast<choc::objc::CGFloat> (height) } });
+}
+#endif
 } // namespace
 
 #ifdef _WIN32
@@ -266,12 +277,25 @@ WebViewPanel::WebViewPanel (void* parent, int width, int height, CallHandler han
         SetParent (view, impl->container);
         SetWindowPos (view, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
     }
+#elif defined(__APPLE__)
+    // the host's NSView holds the WKWebView
+    if (auto view = static_cast<id> (impl->webview->getViewHandle()); view != nullptr && parent != nullptr)
+    {
+        choc::objc::call<void> (static_cast<id> (parent), "addSubview:", view);
+        fill (view, width, height);
+        choc::objc::call<void> (view, "setAutoresizingMask:", static_cast<unsigned long> (2 | 16)); // width and height sizable
+    }
 #endif
 }
 
 WebViewPanel::~WebViewPanel()
 {
     // the WebView goes before its parent window
+#ifdef __APPLE__
+    if (impl->webview != nullptr)
+        if (auto view = static_cast<id> (impl->webview->getViewHandle()))
+            choc::objc::call<void> (view, "removeFromSuperview");
+#endif
     impl->webview.reset();
 #ifdef _WIN32
     if (impl->container != nullptr)
@@ -310,6 +334,10 @@ void WebViewPanel::setSize (int width, int height)
         SetWindowPos (impl->container, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
     if (impl->message != nullptr)
         SetWindowPos (impl->message, nullptr, 0, height / 3, width, 80, SWP_NOZORDER | SWP_NOACTIVATE);
+#elif defined(__APPLE__)
+    if (impl->webview != nullptr)
+        if (auto view = static_cast<id> (impl->webview->getViewHandle()))
+            fill (view, width, height);
 #else
     (void) width;
     (void) height;
@@ -329,6 +357,11 @@ void WebViewPanel::focus()
     if (impl->webview != nullptr)
         if (auto view = static_cast<HWND> (impl->webview->getViewHandle()))
             SetFocus (view);
+#elif defined(__APPLE__)
+    if (impl->webview != nullptr)
+        if (auto view = static_cast<id> (impl->webview->getViewHandle()))
+            if (id window = choc::objc::call<id> (view, "window"))
+                choc::objc::call<BOOL> (window, "makeFirstResponder:", view);
 #endif
 }
 

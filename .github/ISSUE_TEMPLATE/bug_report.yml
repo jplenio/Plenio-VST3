@@ -1,0 +1,41 @@
+name: Something does not work
+description: Plenio VST3 in a DAW did something it should not, or not what it should.
+labels: [bug]
+body:
+  - type: input
+    id: daw
+    attributes:
+      label: DAW and its version
+      placeholder: REAPER 7.25, Cubase 14, Ableton Live 12.1 …
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Plenio VST3 and Plenio versions
+      description: Plenio VST3's version is in its Settings; Plenio's at the top right of its window.
+      placeholder: Plenio VST3 0.1.0-alpha, Plenio 1.6.0
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: Operating system
+      options: [Windows 11, Windows 10, macOS, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you did before
+      description: The steps, what you expected, what you saw. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: The log
+      description: >
+        The end of Plenio VST3's log: Windows %LOCALAPPDATA%\Plenio\VST3\plenio.log,
+        macOS ~/Library/Caches/Plenio/VST3/plenio.log.
+      render: text

@@ -1,0 +1,7 @@
+# The Actions the workflows use, kept current (the C++ dependencies are pinned in tools/fetch_deps.ps1).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

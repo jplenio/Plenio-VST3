@@ -1,0 +1,118 @@
+# A tag v<version> (e.g. v0.1.0-alpha): Plenio VST3 built and tested, the installers and zips made, their checksums,
+# and a draft release with the text of docs/release/<tag>.md. Publishing the draft stays a person's click.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The tag to release (it must exist), e.g. v0.1.0-alpha'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows installer and zip
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+      - name: Dependencies (pinned versions)
+        shell: pwsh
+        run: tools/fetch_deps.ps1
+      - name: Web UI
+        working-directory: webui
+        run: npm ci
+      - name: Build (the validator runs after the plug-in)
+        shell: pwsh
+        run: tools/build.ps1
+      - name: Unit tests
+        shell: pwsh
+        run: build/bin/Release/plenio_tests.exe
+      - name: Installer, zip, checksums (Inno Setup comes with the runner)
+        shell: pwsh
+        run: tools/package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  macos:
+    name: macOS package (experimental)
+    runs-on: macos-15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+      - name: Dependencies (pinned versions)
+        shell: pwsh
+        run: tools/fetch_deps.ps1
+      - name: Web UI
+        working-directory: webui
+        run: npm ci
+      - name: Build (arm64 and x86_64)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 -DSMTG_BUILD_UNIVERSAL_BINARY=OFF
+          cmake --build build --parallel
+          build/bin/Release/plenio_tests
+      - name: Package
+        run: |
+          chmod +x installer/macos/build_pkg.sh
+          version=$(sed -n 's/#define PLENIO_VERSION_STRING "\(.*\)"/\1/p' build/generated/plenio_version.h)
+          installer/macos/build_pkg.sh build/VST3/Release/Plenio.vst3 "$version" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+
+  draft:
+    name: Draft release
+    needs: [windows, macos]
+    if: always() && needs.windows.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Files and checksums
+        run: |
+          mkdir release
+          find artifacts -type f ! -name 'SHA256SUMS*' -exec cp {} release/ \;
+          (cd release && sha256sum * > SHA256SUMS.txt)
+          ls -l release
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          version="${tag#v}"
+          notes="docs/release/${tag}.md"
+          [ -f "$notes" ] || notes="CHANGELOG.md"
+          flags="--draft"
+          case "$version" in *alpha*|*beta*|*rc*) flags="$flags --prerelease";; esac
+          if [ "${{ needs.macos.result }}" != "success" ]; then
+            echo "::warning::The macOS package did not build: the release has Windows only."
+          fi
+          gh release create "$tag" release/* $flags --title "Plenio VST3 $version" --notes-file "$notes"

@@ -51,6 +51,8 @@ tresult PLUGIN_API EditorView::isPlatformTypeSupported (FIDString type)
 {
 #ifdef _WIN32
     return FIDStringsEqual (type, kPlatformTypeHWND) ? kResultTrue : kResultFalse;
+#elif defined(__APPLE__)
+    return FIDStringsEqual (type, kPlatformTypeNSView) ? kResultTrue : kResultFalse;
 #else
     return kResultFalse;
 #endif

@@ -81,6 +81,17 @@ if(WIN32)
     target_sources(Plenio PRIVATE "${PROJECT_SOURCE_DIR}/resources/plenio.rc")
     target_link_libraries(Plenio PRIVATE ole32 oleaut32 shell32 shlwapi user32 gdi32 version)
 endif()
+if(APPLE)
+    # the WebView is a WKWebView in the host's NSView; timers and tasks on the main run loop
+    target_link_libraries(Plenio PRIVATE "-framework Cocoa" "-framework WebKit" "-framework CoreFoundation")
+    set_target_properties(Plenio PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/resources/mac/Info.plist.in"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jplenio.plenio-vst3"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_COPYRIGHT "Johannes Plenio, Apache-2.0"
+    )
+endif()
 
 if(MSVC)
     # the generated web UI source is large: no warnings and the big-object format for it

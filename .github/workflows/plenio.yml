@@ -1,0 +1,76 @@
+# A new Plenio Music Production System release: checked against what the plug-in uses of it (tools/plenio.py).
+# Compatible: its styles taken over and its version recorded as tested, proposed as a pull request.
+# Not compatible: an issue with the report. Weekly, or by hand (with a Plenio tag or branch).
+name: Plenio
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'A Plenio tag or branch (empty: its latest release)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Which Plenio
+        id: which
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ref="${{ inputs.ref }}"
+          if [ -z "$ref" ]; then
+            ref=$(gh api repos/jplenio/Plenio-Music-Production-System/releases/latest --jq .tag_name 2>/dev/null || true)
+          fi
+          [ -n "$ref" ] || ref=main
+          tested=$(python3 -c "import json; print(json.load(open('resources/plenio-compat.json'))['tested'])")
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "tested=$tested" >> "$GITHUB_OUTPUT"
+          echo "Plenio $ref; tested so far: $tested"
+      - uses: actions/checkout@v4
+        with:
+          repository: jplenio/Plenio-Music-Production-System
+          ref: ${{ steps.which.outputs.ref }}
+          path: plenio
+      - name: Check and take over
+        id: sync
+        run: |
+          set +e
+          python3 tools/plenio.py sync plenio --report "$RUNNER_TEMP/report.md"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          version=$(sed -n 's/^version *= *"\(.*\)"/\1/p' plenio/pyproject.toml)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: The UI's tests with the new styles
+        if: steps.sync.outputs.code == '0'
+        working-directory: webui
+        run: |
+          npm ci
+          npx vitest run
+      - name: Propose the result
+        if: steps.sync.outputs.code == '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: plenio/${{ steps.sync.outputs.version }}
+          commit-message: 'Plenio ${{ steps.sync.outputs.version }}: checked, styles taken over'
+          title: 'Plenio ${{ steps.sync.outputs.version }}: checked'
+          body-path: ${{ runner.temp }}/report.md
+          add-paths: |
+            resources/plenio-compat.json
+            webui/src/mock/briefs.json
+      - name: Report what no longer fits
+        if: steps.sync.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create --title "Plenio ${{ steps.sync.outputs.version }} changed what Plenio VST3 uses" \
+            --body-file "$RUNNER_TEMP/report.md"
+          exit 1

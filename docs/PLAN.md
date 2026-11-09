@@ -431,13 +431,18 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
   💡 Plenio ARA's window no longer shows it; the demo data says `0.1.0-alpha` (no "preview").
 - [x] An older Plenio: what a newer one brings and how to update it (ComfyUI Manager)
   💡 The status pill says *update* when Plenio lacks stems or bars or is older than recommended (`resources/plenio-compat.json`, read by the build); a click shows what and how.
-- [ ] New Plenio versions reach the plug-in by themselves (styles, fields, models from the Song API); what does not is caught by a check against each Plenio release (GitHub Actions) and taken over by one script
+- [x] New Plenio versions reach the plug-in by themselves (styles, fields, models from the Song API); what does not is caught by a check against each Plenio release (GitHub Actions) and taken over by one script
+  💡 `tools/plenio.py check|sync <Plenio checkout>`: the Song API's version, routes, the fields the plug-in sets, the score routes, the release record; `sync` takes over the styles (`webui/src/mock/briefs.json`, all 250) and records the version as tested. `.github/workflows/plenio.yml` runs it weekly for Plenio's latest release: a pull request when it fits, an issue when not. New studio switches show up in the brief by themselves.
 
 **Installers and builds**
-- [ ] Windows: an installer that puts the bundle into `C:\Program Files\Common Files\VST3` (and takes it out again), a portable zip
-- [ ] macOS: the bundle (universal) built by GitHub Actions, a `.pkg` into `/Library/Audio/Plug-Ins/VST3`; untested here (no Mac): experimental
-- [ ] Linux: the core and its tests build (WSL here, GitHub Actions); the plug-in's window on Linux (GTK in the host's X11 window) when possible
-- [ ] GitHub Actions: CI on every push (build, tests, validator), the release on a tag (installers, checksums, the release's text as a draft), the Plenio check
+- [x] Windows: an installer that puts the bundle into `C:\Program Files\Common Files\VST3` (and takes it out again), a portable zip
+  💡 `tools/package.ps1`: the zip (checked here) and the installer (`installer/windows/PlenioVST3.iss`, Inno Setup: built by the release workflow, where Inno Setup comes with the runner; not built here).
+- [x] macOS: the bundle (universal) built by GitHub Actions, a `.pkg` into `/Library/Audio/Plug-Ins/VST3`; untested here (no Mac): experimental
+  💡 The platform code for macOS: tasks and timers on the main run loop (CoreFoundation), the WKWebView in the host's NSView, dialogs through System Events, links and Finder through `open`; checked for syntax against Apple's documented signatures, built only by the workflows. `installer/macos/build_pkg.sh`: ad-hoc signed bundle, `.pkg` and zip; macOS 13.3 or newer.
+- [~] Linux: the core and its tests build (WSL here, GitHub Actions); the plug-in's window on Linux (GTK in the host's X11 window) when possible
+  💡 Core and tests: built and passing in WSL (Ubuntu 24.04, GCC 13), and in CI. The plug-in bundle is off on Linux (`PLENIO_BUILD_PLUGIN`): its window needs a GTK WebView inside the host's X11 window, and timers through the host's run loop. Later.
+- [x] GitHub Actions: CI on every push (build, tests, validator), the release on a tag (installers, checksums, the release's text as a draft), the Plenio check
+  💡 `ci.yml` (Windows: UI tests, build, validator, unit tests, the DAW guide's check, zip; Linux: core and tests; macOS: bundle, tests, package, experimental), `release.yml` (tag `v*`: installer, zips, checksums, a draft release with `docs/release/<tag>.md`), `plenio.yml`; issue templates, Dependabot for the Actions.
 
 **Documentation**
 - [ ] README: what Plenio VST3 is, in a minute; pictures; install; DAWs; links
