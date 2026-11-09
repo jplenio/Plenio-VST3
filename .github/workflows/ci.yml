@@ -46,7 +46,7 @@ jobs:
       - name: Package (portable zip)
         shell: pwsh
         run: tools/package.ps1 -NoInstaller
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: plenio-vst3-windows-x64
           path: dist/*.zip
@@ -99,7 +99,7 @@ jobs:
           chmod +x installer/macos/build_pkg.sh
           version=$(sed -n 's/#define PLENIO_VERSION_STRING "\(.*\)"/\1/p' build/generated/plenio_version.h)
           installer/macos/build_pkg.sh build/VST3/Release/Plenio.vst3 "$version" dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: plenio-vst3-macos-universal
           path: dist/*
