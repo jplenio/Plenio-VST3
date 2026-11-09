@@ -1,0 +1,6 @@
+{
+  "comment": "Which Plenio this plug-in works with. minimum: songs can be made (Song API 1.3); recommended: everything works (stems, measured bars); tested: the newest Plenio the plug-in was checked against (.github/workflows/plenio.yml keeps it up to date). The build reads this file.",
+  "minimum": "1.5.0",
+  "recommended": "1.6.0",
+  "tested": "1.6.0"
+}

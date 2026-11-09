@@ -38,7 +38,6 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <header>
       <img src="/plenio-icon.png" alt="" class="logo" />
       <h1>Plenio ARA</h1>
-      <span class="muted version">{{ store.version }}</span>
     </header>
 
     <section v-if="store.ara && store.ara.clips.length" class="clips">
@@ -112,9 +111,6 @@ h1 {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 650;
-}
-.version {
-  font-size: 12px;
 }
 .clips {
   display: flex;

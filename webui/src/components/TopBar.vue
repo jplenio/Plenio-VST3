@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { act, store } from '../store'
 import Icon from './Icon.vue'
@@ -10,10 +10,31 @@ const editing = ref(false)
 const title = ref('')
 const field = ref<HTMLInputElement | null>(null)
 
+/** "1.5.1" older than "1.6.0" (the first three numbers; "1.6.0-dev" counts as 1.6.0). */
+function older(version: string, than: string): boolean {
+  const a = version.split(/[.-]/).map((x) => parseInt(x, 10) || 0)
+  const b = than.split(/[.-]/).map((x) => parseInt(x, 10) || 0)
+  for (let i = 0; i < 3; i++) if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) < (b[i] ?? 0)
+  return false
+}
+
+// a Plenio that makes songs, but not yet everything the plug-in can use: what a newer one brings, and how to get it
+const outdated = computed(() => {
+  const c = store.connection
+  if (!c || c.state !== 'connected') return false
+  return !c.features.includes('stems') || !c.features.includes('bars') || (!!c.recommended && older(c.plenio, c.recommended))
+})
+const showUpdate = ref(false)
+function closeUpdate(e: MouseEvent): void {
+  if (!(e.target as HTMLElement).closest('.status-wrap')) showUpdate.value = false
+}
+onMounted(() => document.addEventListener('mousedown', closeUpdate))
+onBeforeUnmount(() => document.removeEventListener('mousedown', closeUpdate))
+
 const status = computed(() => {
   const c = store.connection
   if (!c) return { tone: 'wait', text: '…' }
-  if (c.state === 'connected') return { tone: 'ok', text: `Plenio ${c.plenio}` }
+  if (c.state === 'connected') return { tone: outdated.value ? 'warn' : 'ok', text: `Plenio ${c.plenio}` }
   if (c.state === 'starting') return { tone: 'wait', text: 'Starting ComfyUI …' }
   if (c.state === 'searching') return { tone: 'wait', text: 'Looking for ComfyUI …' }
   return { tone: 'off', text: 'Studio offline' }
@@ -59,9 +80,31 @@ async function commit(): Promise<void> {
       <span v-if="store.song.kind === 'cover'" class="kind">cover</span>
     </div>
     <div class="spacer" />
-    <div class="status" :class="status.tone" :title="store.connection?.message">
-      <span class="light" />
-      {{ status.text }}
+    <div class="status-wrap">
+      <button
+        class="status"
+        :class="[status.tone, { clickable: outdated }]"
+        :title="outdated ? 'A newer Plenio brings more: click to see what and how' : store.connection?.message"
+        @click="showUpdate = outdated && !showUpdate"
+      >
+        <span class="light" />
+        {{ status.text }}
+        <span v-if="outdated" class="badge">update</span>
+      </button>
+      <div v-if="showUpdate && outdated" class="update">
+        <b>Plenio {{ store.connection?.recommended }} brings more</b>
+        <p>
+          Your Plenio {{ store.connection?.plenio }} makes songs. From {{ store.connection?.recommended }} on, every take also
+          comes with its stems and with its bars as measured in the take, so the tempo map fits the song.
+        </p>
+        <ol>
+          <li>In ComfyUI: <i>Manager › Custom Nodes Manager › Plenio Music Production System › Update</i>.</li>
+          <li>Restart ComfyUI. Plenio VST3 finds the new Plenio by itself.</li>
+        </ol>
+        <p class="muted small">
+          Without the Manager: <code>git pull</code> in <code>ComfyUI/custom_nodes/Plenio-Music-Production-System</code>.
+        </p>
+      </div>
     </div>
     <button class="btn ghost small" title="New song" @click="$emit('new')"><Icon name="plus" :size="15" />New</button>
     <button class="btn ghost small" title="Your songs" @click="$emit('library')"><Icon name="library" :size="15" />Songs</button>
@@ -148,7 +191,12 @@ async function commit(): Promise<void> {
 .spacer {
   flex: 1;
 }
+.status-wrap {
+  position: relative;
+}
 .status {
+  font: inherit;
+  cursor: default;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -177,5 +225,55 @@ async function commit(): Promise<void> {
 }
 .status.off .light {
   background: #7d7690;
+}
+.status.warn .light {
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(255, 178, 62, 0.6);
+}
+.status.clickable {
+  cursor: pointer;
+}
+.status.clickable:hover {
+  border-color: var(--amber);
+}
+.badge {
+  font-size: 10.5px;
+  font-weight: 650;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: rgba(255, 178, 62, 0.16);
+  color: var(--amber);
+}
+.update {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  z-index: 30;
+  width: 340px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #1f1a2c;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.update b {
+  color: var(--text);
+  font-size: 13.5px;
+}
+.update p,
+.update ol {
+  margin: 8px 0 0;
+}
+.update ol {
+  padding-left: 18px;
+}
+.update code {
+  font-size: 11.5px;
+}
+.small {
+  font-size: 11.5px;
 }
 </style>

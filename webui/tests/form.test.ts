@@ -50,6 +50,14 @@ describe('the brief form', () => {
     expect(cover.flatMap((g) => g.fields).some((f) => f.type === 'upload')).toBe(false)
   })
 
+  it('shows a studio switch a newer Plenio brings, after the known ones', () => {
+    const newer = { ...SONG_TEMPLATE, fields: [...SONG_TEMPLATE.fields, { ...SONG_TEMPLATE.fields.find((f) => f.id === 'finish.cover_art')!, id: 'finish.loudness', label: 'Loudness' }] }
+    const studio = moreGroups(newer)[0]
+    expect(studio.title).toBe('The studio')
+    expect(studio.fields.map((f) => f.id)).toContain('finish.loudness')
+    expect(studio.fields[0].id).toBe('finish.cover_art')
+  })
+
   it('says what is missing', () => {
     expect(missing('cover', { template: 'none' }, '')).toEqual(['the original recording', 'a style, a genre or a description'])
     expect(missing('song', { template: synthwave.id, vocals: 'sung', lyrics_from: OWN_LYRICS, lyrics: ' ' }, '')).toEqual(['your lyrics'])

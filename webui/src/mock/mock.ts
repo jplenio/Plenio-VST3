@@ -282,8 +282,8 @@ const ara: AraState = {
 }
 
 function state(): AppState {
-  if (initial === 'ara') return { hello: { kind: 'ara', version: '0.1.0-alpha (preview)', host: 'Browser' }, connection: null, settings: null, song: null, position: 0, ara }
-  return { hello: { kind: 'instrument', version: '0.1.0-alpha (preview)', host: 'Browser' }, connection, settings, song, position: 24.3 }
+  if (initial === 'ara') return { hello: { kind: 'ara', version: '0.1.0-alpha', host: 'Browser' }, connection: null, settings: null, song: null, position: 0, ara }
+  return { hello: { kind: 'instrument', version: '0.1.0-alpha', host: new URLSearchParams(location.search).get('host') ?? 'Browser' }, connection, settings, song, position: 24.3 }
 }
 
 let jobTimer: number | undefined

@@ -28,7 +28,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` started or partly done · 💡 note
 | 6 | DAW integration: drag and drop, export, REAPER tracks with native takes and the tempo map | 🔄 built; drag and drop and REAPER in the owner's test |
 | 7 | ARA 2: Plenio ARA on clips | 🔄 takes recognised, their content for the host, another take in the clip, its window; open: words and notes in the window, covers of any clip |
 | 8 | Test version for the owner: end to end, live, in REAPER and Cubase | 🔄 end to end and offline checked; REAPER and Cubase: the owner's test |
-| 9 | Alpha release on GitHub: polish, docs, package, release text | ⬜ |
+| 9 | Alpha release 0.1.0-alpha: in the plug-in, installers, Actions, docs, media, launch | 🔄 started 2026-11-09 |
 
 ---
 
@@ -419,12 +419,40 @@ the first song.
   💡 Plenio hands it over as a JPEG of its own (the job's file with the role `cover`) and embeds it in the take's FLAC: the plug-in fetched neither. Now each take keeps its cover beside its audio (fetched with the take, or taken from its FLAC, also for songs made before), the song's folder keeps `cover.jpg` (the chosen take's, else the newest take's), the window shows it (the song's header with a large view, the take lanes, the song list; served at `/files/cover/…`), and REAPER's song folder and Song track get it as their icon. Checked in EditorHost with the owner's take (its 1024 × 1024 cover from the FLAC); a run with cover art: the owner's test. No API addition needed.
   💡 `docs/TESTING.md`: REAPER and Cubase step by step, and how to give the owner's ComfyUI Plenio 1.6.0.
 
-### Phase 9: alpha release
+### Phase 9: alpha release 0.1.0-alpha
 
-- [ ] Polish from the owner's test
-- [ ] README with screenshots, user guide, development guide, CHANGELOG
-- [ ] `tools/package.ps1`: zip with the bundle, checksums
-- [ ] Release text (pre-release `v0.1.0-alpha`); publishing is the owner's
+The owner (2026-11-09): good enough for 0.1.0-alpha; everything ready for the release, as for the SoundCraft add-in's.
+Publishing (GitHub, YouTube, posts) stays the owner's.
+
+**In the plug-in**
+- [x] Every DAW's own steps in the DAW tab, the host the plug-in runs in first (tempo map, stems' outputs, MIDI out, ARA, audio that follows the tempo)
+  💡 `webui/src/daws.json`: REAPER, Cubase and Nuendo, Studio One, Ableton Live, FL Studio, Bitwig Studio, Cakewalk and Sonar; Logic and Pro Tools say why not (no VST3). The DAW tab knows the host by its name and lets you pick another; `docs/DAWS.md` is written from the same file (`tools/docs/make_daws_md.py`, `--check` for CI).
+- [x] No version in pictures: the version only in Settings
+  💡 Plenio ARA's window no longer shows it; the demo data says `0.1.0-alpha` (no "preview").
+- [x] An older Plenio: what a newer one brings and how to update it (ComfyUI Manager)
+  💡 The status pill says *update* when Plenio lacks stems or bars or is older than recommended (`resources/plenio-compat.json`, read by the build); a click shows what and how.
+- [ ] New Plenio versions reach the plug-in by themselves (styles, fields, models from the Song API); what does not is caught by a check against each Plenio release (GitHub Actions) and taken over by one script
+
+**Installers and builds**
+- [ ] Windows: an installer that puts the bundle into `C:\Program Files\Common Files\VST3` (and takes it out again), a portable zip
+- [ ] macOS: the bundle (universal) built by GitHub Actions, a `.pkg` into `/Library/Audio/Plug-Ins/VST3`; untested here (no Mac): experimental
+- [ ] Linux: the core and its tests build (WSL here, GitHub Actions); the plug-in's window on Linux (GTK in the host's X11 window) when possible
+- [ ] GitHub Actions: CI on every push (build, tests, validator), the release on a tag (installers, checksums, the release's text as a draft), the Plenio check
+
+**Documentation**
+- [ ] README: what Plenio VST3 is, in a minute; pictures; install; DAWs; links
+- [ ] Tutorial for beginners, with screenshots and animations (REAPER, and what differs elsewhere)
+- [ ] The DAWs: every one's own steps (also in the plug-in)
+- [ ] Development guide, CHANGELOG, how new Plenio versions come in
+- [ ] How to release: the GitHub repository from nothing, the Actions, the tag, the release
+
+**Media and launch**
+- [ ] A demo song made with the plug-in in the owner's REAPER 7 (the owner's wish: screenshots and runs in it)
+- [ ] Logo, banner, social preview, screenshots (no version in them), animations
+- [ ] The teaser: animated, at once clear what it offers (16:9, 9:16 for Shorts, Reels and TikTok)
+- [ ] The tutorial as a video: every important step, light and short
+- [ ] The marketing toolkit: texts for every channel (no X; Reddit with care, in the author's own voice), which picture or video goes with which post
+- [ ] The release's text
 
 ---
 

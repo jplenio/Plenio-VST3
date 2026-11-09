@@ -130,15 +130,22 @@ export function moreGroups(template: TemplateDetail | null): MoreGroup[] {
   if (!template) return []
   const own = template.fields.filter((f) => !OWN.has(f.id) && !f.fixed && f.type !== 'upload')
   const groups: MoreGroup[] = [
-    { title: 'The studio', fields: STUDIO_FIRST.map((id) => own.find((f) => f.id === id)).filter((f): f is Field => !!f) },
+    // the studio's switches (cover art, mastering, the writer's model) first, then any a newer Plenio brings
+    {
+      title: 'The studio',
+      fields: [
+        ...STUDIO_FIRST.map((id) => own.find((f) => f.id === id)).filter((f): f is Field => !!f),
+        ...own.filter((f) => f.id.includes('.') && !STUDIO_FIRST.includes(f.id) && !f.id.startsWith('excerpt.'))
+      ]
+    },
     { title: 'The song brief', fields: own.filter((f) => !STUDIO_FIRST.includes(f.id) && !f.id.includes('.')) },
     { title: 'An excerpt of the original', fields: own.filter((f) => f.id.startsWith('excerpt.')) }
   ]
   return groups.filter((g) => g.fields.length)
 }
 
-/** What the plug-in starts from: the template's values, but no cover art (a DAW has no use for it, and it costs a
- * minute per take). */
+/** What the plug-in starts from: the template's values, but no cover art until it is asked for (it costs about a minute
+ * per take; switched on, the song shows it and keeps it as cover.jpg). */
 export function moreStart(template: TemplateDetail | null): Values {
   const out: Values = {}
   for (const g of moreGroups(template)) for (const f of g.fields) out[f.id] = f.default as string | number | boolean

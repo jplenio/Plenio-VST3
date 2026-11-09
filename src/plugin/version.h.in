@@ -7,3 +7,7 @@
 #define PLENIO_VERSION_STRING "@PLENIO_VERSION_STRING@"
 /// The VST3 class version: four numbers, no suffix.
 #define PLENIO_VERSION_NUMBERS "@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@.0"
+/// Which Plenio the plug-in works with (resources/plenio-compat.json).
+#define PLENIO_MINIMUM_PLENIO "@PLENIO_MINIMUM@"
+#define PLENIO_RECOMMENDED_PLENIO "@PLENIO_RECOMMENDED@"
+#define PLENIO_TESTED_PLENIO "@PLENIO_TESTED@"

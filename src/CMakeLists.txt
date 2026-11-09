@@ -1,5 +1,11 @@
 # Plenio's own code: the core (no VST3), the engine, and the bundle with both plug-ins.
 
+# which Plenio the plug-in works with (resources/plenio-compat.json, kept up to date by the Plenio check)
+file(READ "${PROJECT_SOURCE_DIR}/resources/plenio-compat.json" PLENIO_COMPAT_JSON)
+string(JSON PLENIO_MINIMUM GET "${PLENIO_COMPAT_JSON}" minimum)
+string(JSON PLENIO_RECOMMENDED GET "${PLENIO_COMPAT_JSON}" recommended)
+string(JSON PLENIO_TESTED GET "${PLENIO_COMPAT_JSON}" tested)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/resources/plenio-compat.json")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/plugin/version.h.in" "${PLENIO_GENERATED}/plenio_version.h" @ONLY)
 
 add_subdirectory(core)

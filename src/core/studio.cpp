@@ -1,4 +1,5 @@
 #include "core/studio.h"
+#include "plenio_version.h"
 #include "core/log.h"
 #include "core/paths.h"
 #include "platform/main_thread.h"
@@ -80,6 +81,7 @@ Json Connection::toJson() const
              { "api", api },
              { "comfyui", comfyui },
              { "features", std::vector<std::string> (features.begin(), features.end()) },
+             { "recommended", PLENIO_RECOMMENDED_PLENIO },
              { "message", message } };
 }
 
@@ -334,7 +336,7 @@ void Studio::monitor()
                 found.state = Connection::State::connected;
                 found.message = "Plenio " + found.plenio + " on ComfyUI " + found.comfyui;
                 if (! found.has ("bars") || ! found.has ("stems"))
-                    found.message += " (update Plenio to 1.6 for stems and bars)";
+                    found.message += std::string (" (Plenio ") + PLENIO_RECOMMENDED_PLENIO + " brings stems and measured bars)";
                 startRequested = false;
                 if (before.state != Connection::State::connected || before.port != found.port || before.plenio != found.plenio)
                     fetchFrom = PlenioClient (found.host, found.port, token);

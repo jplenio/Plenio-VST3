@@ -13,6 +13,8 @@ export interface Connection {
   features: string[]
   message: string
   startComfyUI?: boolean
+  /** the Plenio with which everything works (resources/plenio-compat.json) */
+  recommended?: string
 }
 
 export interface Settings {

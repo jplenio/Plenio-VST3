@@ -8,6 +8,7 @@ import { fromStyle, moreGroups, request, type Values } from '../form'
 import { act, loadBriefs, loadTemplate, store, toast } from '../store'
 import type { Brief, TemplateDetail } from '../types'
 import BriefForm from './BriefForm.vue'
+import DawGuide from './DawGuide.vue'
 import Icon from './Icon.vue'
 
 type Tab = 'words' | 'brief' | 'daw'
@@ -128,11 +129,6 @@ function setMidiOut(on: boolean): void {
 
 const active = computed(() => song.value.takes[song.value.activeTake])
 const dawState = computed(() => active.value?.daw ?? '')
-const tempoText = computed(() => {
-  const t = song.value.layout?.tempo
-  if (!t) return 'the song’s tempo'
-  return Math.abs(t[1] - t[0]) < 0.6 ? `${t[0].toFixed(1)} BPM` : `about ${((t[0] + t[1]) / 2).toFixed(0)} BPM`
-})
 
 function prepare(): void {
   if (active.value) void call('daw.prepare', { index: active.value.index })
@@ -304,16 +300,7 @@ function drag(e: PointerEvent, what: DragWhat['what'], stem?: string): void {
               <span class="what"><b>Click</b><span class="muted">every beat, louder on the bar</span></span>
             </div>
           </div>
-          <details class="howto">
-            <summary>The tempo map in your DAW</summary>
-            <p>
-              <b>REAPER:</b> drop the tempo map at bar 1 and choose to import its tempo. Plenio keeps its audio in the
-              project in time: REAPER’s grid moves onto the song, the song keeps its speed.
-            </p>
-            <p><b>Cubase:</b> File › Import › MIDI File… (or drop it) with the tempo track imported.</p>
-            <p><b>Studio One, Bitwig, Logic:</b> dropping the MIDI file offers its tempo.</p>
-            <p><b>Ableton Live, FL Studio:</b> set the tempo to {{ tempoText }}; the click shows where the bars fall. In Live, Warp off on the audio.</p>
-          </details>
+          <DawGuide />
           <button class="btn small ghost reveal" :disabled="dawState !== 'ready'" @click="call('daw.reveal', { index: active.index })">
             <Icon name="folder" :size="13" />Show the files
           </button>
