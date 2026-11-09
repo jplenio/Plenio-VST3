@@ -152,6 +152,16 @@ and zip and the macOS package, and creates a **draft** under *Releases*, titled 
   commit, push, then `tag_release.ps1` again.
 - **A new draft for the same tag** (after the macOS job was fixed, say): delete the draft, then *Actions* › *Release* ›
   *Run workflow* with the tag.
+- **Both builds are green, but no draft came** (GitHub did not start the *Draft release* job, and the run cannot be
+  re-run; it happened with 0.1.0-alpha): the draft job by hand, with the run's own files. In Git Bash:
+  ```bash
+  gh run download <run id> -D artifacts
+  mkdir release && find artifacts -type f ! -name 'SHA256SUMS*' -exec cp {} release/ \;
+  (cd release && sha256sum * > SHA256SUMS.txt)
+  gh release create v<version> release/* --draft --prerelease --verify-tag --title "Plenio VST3 <version>" \
+    --notes-file docs/release/v<version>.md
+  ```
+  `--prerelease` only for an alpha, beta or rc, as the workflow does.
 - **`git push` refused with `GH007`**: a commit carries an e-mail address GitHub keeps private
   (*Settings* › *Emails* › *Block command line pushes that expose my email*). Allow it there, or rewrite the commit's
   author before the first push.
