@@ -828,7 +828,11 @@ Json SongController::call (const std::string& method, const Json& params)
                 item["stars"] = *s.bestStars;
             std::error_code ec;
             if (auto when = std::filesystem::last_write_time (s.folder / core::songCoverName, ec); ! ec)
-                item["cover"] = "/files/cover/" + s.id + "/song?v=" + std::to_string (when.time_since_epoch().count());
+            {
+                // the cover's version in its URL; libc++ counts file time in __int128, which to_string does not take
+                const auto version = static_cast<long long> (when.time_since_epoch().count());
+                item["cover"] = "/files/cover/" + s.id + "/song?v=" + std::to_string (version);
+            }
             list.push_back (item);
         }
         return list;
