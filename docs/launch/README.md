@@ -1,0 +1,64 @@
+# Launch plan for 0.1.0-alpha
+
+What is ready, where it is, and the order to publish it in. Nothing here publishes by itself.
+
+## Ready in the repository
+
+| What | Where |
+|---|---|
+| Version `0.1.0-alpha`, the changelog | `CMakeLists.txt`, [`CHANGELOG.md`](../../CHANGELOG.md) |
+| Licences and notices | [`LICENSE`](../../LICENSE), [`NOTICE.md`](../../NOTICE.md), [`THIRD_PARTY.md`](../../THIRD_PARTY.md) |
+| README, tutorial, the DAWs, development, releasing | [`README.md`](../../README.md), [`TUTORIAL.md`](../TUTORIAL.md), [`DAWS.md`](../DAWS.md), [`DEVELOPMENT.md`](../DEVELOPMENT.md), [`RELEASING.md`](../RELEASING.md) |
+| The release's text (the release workflow takes it) | [`docs/release/v0.1.0-alpha.md`](../release/v0.1.0-alpha.md) |
+| The texts for every channel, and which picture goes where | [`ANNOUNCEMENTS.md`](ANNOUNCEMENTS.md) |
+| Logo, banner, social preview, screenshots, animations | [`docs/media/`](../media/) |
+| The installers and the release itself | made by GitHub Actions from the tag (`.github/workflows/release.yml`) |
+
+## The files
+
+Outside the repository, in `../plenio-vst3-launch/` (next to this repository; not committed: the videos' music is a
+YuE2 song, CC BY-NC 4.0, which the repository's Apache-2.0 does not cover):
+
+| File | What |
+|---|---|
+| `video/plenio-vst3-teaser.mp4` | the teaser, 1920 x 1080, 72 s, the music at -14 LUFS |
+| `video/plenio-vst3-teaser-vertical.mp4` | the teaser for Shorts, Reels and TikTok, 1080 x 1920 |
+| `video/plenio-vst3-tutorial.mp4` | the tutorial, 1920 x 1080, with chapters (`tutorial-chapters.txt`, for YouTube's description) |
+| `video/teaser-poster.png`, `video/tutorial-thumbnail.png` | pictures for YouTube and the posts |
+| `web/*-720p.mp4` | 720p copies under 10 MB: for Discord and for a player in GitHub's release text |
+| `SHA256SUMS.txt` | the checksums |
+
+Make them again (after a new demo song or new screenshots):
+
+```powershell
+node tools/media/tour.mjs .dev/tour new-song takes lyrics notes daw cover library   # the plug-in in EditorHost or a DAW
+python tools/media/make_media.py anims .dev/tour                                     # docs/media/anim/*.gif
+python tools/media/make_teaser.py "<song folder>" .dev/tour ../plenio-vst3-launch/video
+python tools/media/make_tutorial.py "<song folder>" .dev/tour ../plenio-vst3-launch/video/plenio-vst3-tutorial.mp4
+```
+
+The 720p copies: `ffmpeg -i <video> -vf scale=-2:720 -c:v libx264 -b:v 900k -pass 1/2 … -c:a aac -b:a 128k -movflags +faststart`
+(the vertical one scaled to 720 x 1280).
+
+## Order
+
+1. **Plenio 1.6.0** first ([RELEASING.md › 0](../RELEASING.md#0-before-the-first-release-plenio-160)): the plug-in
+   recommends it.
+2. **The repository**: create it, push, settings ([RELEASING.md › 1-4](../RELEASING.md#1-create-the-github-repository-once)).
+3. **YouTube**: upload the teaser and the tutorial (titles and descriptions in
+   [ANNOUNCEMENTS.md › YouTube](ANNOUNCEMENTS.md#youtube), the tutorial's chapters from `tutorial-chapters.txt`); put
+   both in a playlist *Plenio*. Then replace the placeholders: the README (the comment under the picture), the release
+   text (*▶ Teaser and tutorial*), the YouTube descriptions (each links the other).
+4. **The release**: tag, push, look at the draft, publish ([RELEASING.md › 5-6](../RELEASING.md#5-release)). Drag
+   `web/plenio-vst3-teaser-720p.mp4` into the release text for a player in place.
+5. **Posts**, one channel a day, starting on a weekday morning US time (they reward being there for the comments):
+   r/comfyui, then r/Reaper, r/LocalLLaMA, r/AudioPlugins; LinkedIn, Bluesky, Mastodon, Discord and KVR in between;
+   Hacker News on a weekday morning; the vertical teaser on Shorts, Instagram and TikTok. The texts:
+   [ANNOUNCEMENTS.md](ANNOUNCEMENTS.md).
+6. **Afterwards**: the first issues tell which DAWs work; then the DAW subreddits, with that DAW's screenshot.
+
+## Licence of the launch material
+
+The texts, logo, banner, screenshots and animations: Apache-2.0, like the repository (the name Plenio and its logo
+are not licensed as marks). The videos: their pictures are the project's, their music is a YuE2 song, so each video as a
+whole is **CC BY-NC 4.0**: fine for announcing a free project, not for paid advertising.

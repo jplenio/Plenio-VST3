@@ -445,19 +445,25 @@ Publishing (GitHub, YouTube, posts) stays the owner's.
   💡 `ci.yml` (Windows: UI tests, build, validator, unit tests, the DAW guide's check, zip; Linux: core and tests; macOS: bundle, tests, package, experimental), `release.yml` (tag `v*`: installer, zips, checksums, a draft release with `docs/release/<tag>.md`), `plenio.yml`; issue templates, Dependabot for the Actions.
 
 **Documentation**
-- [ ] README: what Plenio VST3 is, in a minute; pictures; install; DAWs; links
-- [ ] Tutorial for beginners, with screenshots and animations (REAPER, and what differs elsewhere)
-- [ ] The DAWs: every one's own steps (also in the plug-in)
-- [ ] Development guide, CHANGELOG, how new Plenio versions come in
-- [ ] How to release: the GitHub repository from nothing, the Actions, the tag, the release
+- [x] README: what Plenio VST3 is, in a minute; pictures; install; DAWs; links
+- [~] Tutorial for beginners, with screenshots and animations (REAPER, and what differs elsewhere)
+  💡 `docs/TUTORIAL.md`: thirteen steps, a picture or animation for each. Open: the three REAPER screenshots (`reaper-insert.png`, `reaper-plenio.png`, `reaper-tracks.png`), from the REAPER session.
+- [x] The DAWs: every one's own steps (also in the plug-in)
+- [x] Development guide, CHANGELOG, how new Plenio versions come in
+- [x] How to release: the GitHub repository from nothing, the Actions, the tag, the release
+  💡 `docs/RELEASING.md`; the launch plan and every channel's text in `docs/launch/`.
 
 **Media and launch**
-- [ ] A demo song made with the plug-in in the owner's REAPER 7 (the owner's wish: screenshots and runs in it)
-- [ ] Logo, banner, social preview, screenshots (no version in them), animations
-- [ ] The teaser: animated, at once clear what it offers (16:9, 9:16 for Shorts, Reels and TikTok)
-- [ ] The tutorial as a video: every important step, light and short
-- [ ] The marketing toolkit: texts for every channel (no X; Reddit with care, in the author's own voice), which picture or video goes with which post
-- [ ] The release's text
+- [~] A demo song made with the plug-in in the owner's REAPER 7 (the owner's wish: screenshots and runs in it)
+  💡 Two demo songs made with the plug-in in EditorHost on the dev ComfyUI (*The Height of the Flight*, synth pop, and *Scent of the Night*, dance pop, each two takes with stems and cover art). The REAPER session (screenshots and clips in REAPER 7) needs the newest build installed (UAC: the owner).
+- [x] Logo, banner, social preview, screenshots (no version in them), animations
+  💡 `docs/media`: brand renders, screenshots, eight animations from the tour (`tools/media/tour.mjs`, `make_media.py`).
+- [~] The teaser: animated, at once clear what it offers (16:9, 9:16 for Shorts, Reels and TikTok)
+  💡 `tools/media/make_teaser.py`: 72 s cut to the demo song's verse and chorus, karaoke, the plug-in's own recordings, stems, the measured tempo, the cover, the DAWs. The REAPER scene waits for its screenshot.
+- [~] The tutorial as a video: every important step, light and short
+  💡 `tools/media/make_tutorial.py`: six chapters, a camera on the plug-in's recordings, a caption for every step, about 2:30. REAPER's steps come in with the REAPER session's clips.
+- [x] The marketing toolkit: texts for every channel (no X; Reddit with care, in the author's own voice), which picture or video goes with which post
+- [x] The release's text
 
 ---
 

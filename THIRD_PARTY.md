@@ -21,6 +21,10 @@ components; each keeps its own licence. They are fetched at pinned versions by `
 The Plenio icon (`resources/plenio.ico`, `webui/public/plenio-icon.png`) is the Plenio Player's icon from the
 Plenio Music Production System (Apache-2.0, same author).
 
+The pictures and videos in `docs/media` and the launch material are set in Montserrat (SIL Open Font License 1.1),
+taken from the computer they were rendered on; the font is not part of this repository. The teaser's drawing (sky,
+waves, the neon logo) follows the SoundCraft add-in's media scripts (same author, MIT/Apache-2.0).
+
 The Microsoft Edge WebView2 Runtime is part of Windows 11 (and installed with Microsoft Edge on Windows 10); CHOC
 loads it without the WebView2 SDK.
 
@@ -35,5 +39,6 @@ loads it without the WebView2 SDK.
 ## Trademarks
 
 VST is a registered trademark of Steinberg Media Technologies GmbH. ARA Audio Random Access is a trademark of
-Celemony Software GmbH. REAPER is a trademark of Cockos Incorporated. Plenio VST3 is not affiliated with or endorsed
-by them; the names only say what the plug-in works with.
+Celemony Software GmbH. REAPER is a trademark of Cockos Incorporated. Cubase, Nuendo, Studio One, Ableton Live, FL Studio, Bitwig Studio,
+Cakewalk, Sonar, Logic Pro and Pro Tools are trademarks of their owners. Plenio VST3 is not affiliated with or endorsed
+by any of them; the names only say what the plug-in works with.
