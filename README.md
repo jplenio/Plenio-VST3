@@ -1,3 +1,19 @@
+> [!IMPORTANT]
+> ## ⛔ This repository is no longer maintained
+>
+> **Plenio VST3 now lives in the [Plenio Music Production System](https://github.com/jplenio/Plenio-Music-Production-System)** - the repository it always needed
+> anyway, since the plug-in makes its songs with Plenio in ComfyUI. There it is part of every release: one version
+> for both, tested together, the Windows installer and the macOS package among each release's files.
+>
+> ### ➡️ [Plenio VST3 in the Plenio Music Production System](https://github.com/jplenio/Plenio-Music-Production-System/tree/main/vst3) · [Download the newest version](https://github.com/jplenio/Plenio-Music-Production-System/releases/latest)
+>
+> This repository stays readable as it is (0.1.0-alpha), but gets no updates, fixes or answers any more. Please open
+> new issues and questions [in the Plenio Music Production System](https://github.com/jplenio/Plenio-Music-Production-System/issues). The plug-in there speaks Plenio
+> 2.0's Song API, reaches a ComfyUI on another computer with a token, and keeps every song a 0.1.0-alpha project
+> made.
+
+---
+
 <p align="center">
   <img src="docs/media/banner.png" alt="Plenio VST3: the Plenio Music Production System in your DAW" width="100%">
 </p>
